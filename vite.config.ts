@@ -14,10 +14,11 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://api.deepseek.com/chat',
+        target: 'http://192.168.32.24:8084/llm',
+        // target: 'https://agi.iyiou.com/v1',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '') // 路径重写
-      },
-    },
+        rewrite: (path) => path.replace(/^\/api/, '')
+      }
+    }
   },
 })

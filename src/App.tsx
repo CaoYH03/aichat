@@ -1,5 +1,7 @@
+//  App
+
 const App: React.FC = () => {
-  return <div>asdasdasd</div>;
+  return <div></div>;
 };
 
 export default App;
