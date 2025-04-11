@@ -3,11 +3,10 @@
     -moz-text-size-adjust: 100%;
     text-size-adjust: 100%;
     word-wrap: break-word;
-    color: var(--TY-Text-1);
     font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Noto Sans,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji;
-    font-size: var(--BASE-FONT-SIZE-1,14px);
-    letter-spacing: var(--BASE-FONT-WIDTH,.004rem);
-    line-height: var(--BASE-LINE-HEIGHT,1.7);
+    font-size: 16px;
+    letter-spacing: 0.004rem;
+    line-height: 1.7;
     margin: 0
 }
 
@@ -38,15 +37,20 @@
 }
 
 .tongyi-markdown .markdown-link {
-    color: var(--TY-Text-Brand-1);
+    color: #615ced;
     text-decoration: underline;
-    text-decoration-color: var(--TY-Text-Brand-1)
+    text-decoration-color: #615ced
 }
 
 .tongyi-markdown a {
     background-color: transparent;
-    color: var(--TY-Text-Brand-1);
-    text-decoration: none
+    text-decoration: none;
+    color: #333;
+    font-weight: 500;
+    &:hover {
+        color:  #615ced;
+        text-decoration: underline;
+    }
 }
 
 .tongyi-markdown abbr[title] {
@@ -104,7 +108,7 @@
 }
 
 .tongyi-markdown hr {
-    background-color: var(--TY-Line-1);
+    background-color: #e8eaf2;
     border: 0;
     box-sizing: content-box;
     height: 1px;
@@ -422,13 +426,15 @@
 }
 
 .tongyi-markdown table th {
-    background-color: var(--TY-Fill-Brand-2);
-    font-weight: 600
+    background-color: #f3f2ff;
+    font-weight: 600;
+    white-space: nowrap;
 }
 
 .tongyi-markdown table td,.tongyi-markdown table th {
-    border: 1px solid var(--TY-Line-1);
-    padding: 6px 13px
+    border: 1px solid #e8eaf2;
+    padding: 6px 13px;
+    white-space: nowrap;
 }
 
 .tongyi-markdown table td>:last-child {
@@ -436,7 +442,7 @@
 }
 
 .tongyi-markdown table tr {
-    border-top: 1px solid var(--TY-Line-1)
+    border-top: 1px solid #e8eaf2
 }
 
 .tongyi-markdown table img {
@@ -906,4 +912,35 @@
 
 .tongyi-markdown .markdown-alert.markdown-alert-caution .markdown-alert-title {
     color: #d1242f
+}
+
+// 添加思考内容的样式
+.tongyi-markdown .thinking-content {
+    width: 864px;
+    color: #000;
+    background-color: #f3f2ff;
+    padding: 16px;
+    border-radius: 8px;
+    margin: 12px 0;
+    font-size: 14px;
+    line-height: 1.6;
+    border-left: 4px solid #615ced;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    position: relative;
+    overflow: hidden;
+    padding-top: 30px;
+    transition: all 0.3s ease-in-out;
+}
+
+.tongyi-markdown .thinking-content::before {
+    content: "思考过程";
+    position: absolute;
+    top: 0;
+    left: -6px;
+    background-color: #615ced;
+    color: white;
+    padding: 2px 8px;
+    font-size: 12px;
+    border-bottom-left-radius: 4px;
+    
 }

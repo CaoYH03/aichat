@@ -4,7 +4,7 @@ import { getChatList } from '@client/api';
 import { useEffect, useState, useCallback } from 'react';
 import eventBus from '@client/hooks/eventMitt';
 import { addSearchParams } from '@client/utils';
-import { Button } from 'antd';
+import { Button, message } from 'antd';
 import { useSearchParams } from 'react-router-dom';
 
 interface SessionItem {
@@ -15,6 +15,7 @@ interface SessionItem {
 const SessionList = () => {
   const [items, setItems] = useState<SessionItem[]>([]);
   const [activeKey, setActiveKey] = useState('');
+  const [isCreateNewSession, setIsCreateNewSession] = useState(false);
   const [style] = useState({
     width: '200px',
     minHeight: '100%',
@@ -22,7 +23,7 @@ const SessionList = () => {
   });
   const [searchParams] = useSearchParams();
   
-  const fetchChatList = useCallback(async () => {
+  const fetchChatList = useCallback(async (isSelect = false) => {
     const response = await getChatList();
     setItems(
       response.data.map((item: { id: string; name: string }) => ({
@@ -30,6 +31,10 @@ const SessionList = () => {
         label: item.name,
       }))
     );
+    if (isSelect) {
+      setActiveKey(response.data[0].id);
+    }
+    setIsCreateNewSession(false);
   }, []);
   
   useEffect(() => {
@@ -41,14 +46,20 @@ const SessionList = () => {
   }, [fetchChatList, searchParams]);
   
   useEffect(() => {
-    eventBus.on('requestSessionList', fetchChatList);
+    const handleRequestSessionList = (event: unknown) => {
+      const isSelect = event as boolean;
+      fetchChatList(isSelect);
+    };
+    
+    eventBus.on('requestSessionList', handleRequestSessionList);
     return () => {
-      eventBus.off('requestSessionList', fetchChatList);
+      eventBus.off('requestSessionList', handleRequestSessionList);
     };
   }, [fetchChatList]);
   
   const handleActiveChange = (key: string) => {
     setActiveKey(key);
+    setIsCreateNewSession(false);
     if (key !== activeKey) {
       addSearchParams('conversationId', key);
       eventBus.emit('checkSession', key);
@@ -56,11 +67,18 @@ const SessionList = () => {
   };
   
   const handleCreateSession = () => {
+    if (isCreateNewSession) {
+      message.success("已经新建会话");
+      return;
+    }
+    setIsCreateNewSession(true);
+    setActiveKey('');
+    setItems((prev) => [{ key: '', label: '新建会话' }, ...prev]);
     eventBus.emit('createSession');
   };
   
   return (
-    <div className="h-full overflow-y-auto overflow-x-hidden bg-[#fff] p-4">
+    <div className="overflow-y-auto overflow-x-hidden bg-[#fff] p-4">
       <div className="mb-4 flex">
         <Button 
           onClick={handleCreateSession}

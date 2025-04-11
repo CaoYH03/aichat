@@ -3,7 +3,7 @@ export const chatMessage = async (data: unknown) => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: 'Bearer app-FmtSXSraSCIwrsYEwiIirtgD',
+      Authorization: 'Bearer app-jO8oLjoCURbE2SjOz0dZkn31',
     },
     body: JSON.stringify(data),
   });
@@ -15,7 +15,7 @@ export const stopChat = async (task_id: string, data: unknown) => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: 'Bearer app-FmtSXSraSCIwrsYEwiIirtgD',
+      Authorization: 'Bearer app-jO8oLjoCURbE2SjOz0dZkn31',
     },
     body: JSON.stringify(data),
     });
@@ -23,33 +23,33 @@ export const stopChat = async (task_id: string, data: unknown) => {
 };
 // 获取会话列表
 export const getChatList = async () => {
-  const response = await fetch('/api/conversations?user=abc-123', {
+  const response = await fetch('/api/conversations?user=abc', {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: 'Bearer app-FmtSXSraSCIwrsYEwiIirtgD',
+      Authorization: 'Bearer app-jO8oLjoCURbE2SjOz0dZkn31',
     },
   });
   return response.json();
 };
 // 获取会话详情
 export const checkSession = async (conversation_id: string) => {
-  const response = await fetch(`/api/messages?user=abc-123&conversation_id=${conversation_id}`, {
+  const response = await fetch(`/api/messages?user=abc&conversation_id=${conversation_id}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: 'Bearer app-FmtSXSraSCIwrsYEwiIirtgD',
+      Authorization: 'Bearer app-jO8oLjoCURbE2SjOz0dZkn31',
     },
   });
   return response.json();
 };
 // 获取下一轮会话建议
 export const getNextSuggestion = async (message_id: string) => {
-  const response = await fetch(`/api/messages/${message_id}/suggested?user=abc-123`, {
+  const response = await fetch(`/api/messages/${message_id}/suggested?user=abc`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: 'Bearer app-FmtSXSraSCIwrsYEwiIirtgD',
+      Authorization: 'Bearer app-jO8oLjoCURbE2SjOz0dZkn31',
     },
   });
   return response.json();

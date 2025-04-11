@@ -30,6 +30,7 @@ const IndexContent = () => {
             overflowY: 'auto',
             transform: 'translateZ(0)',
             borderRadius: '12px 0 0 12px',
+            backgroundColor: '#fff',
           }}>
           <SessionList />
         </motion.div>

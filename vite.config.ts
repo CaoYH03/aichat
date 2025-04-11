@@ -12,10 +12,12 @@ export default defineConfig({
     },
   },
   server: {
+    host: '0.0.0.0', // 监听所有网络接口
+    port: 3000, // 指定端口，可选
     proxy: {
       '/api': {
-        target: 'http://192.168.32.24:8084/llm',
-        // target: 'https://agi.iyiou.com/v1',
+        // target: 'https://dev-apidata.iyiou.com/spa/llm',
+        target: 'https://agi.iyiou.com/v1',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
       }
