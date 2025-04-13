@@ -33,6 +33,28 @@ const BubbleList: React.FC<BubbleListProps> = memo(({ messages, isTyping }) => {
       ];
     });
   }, []);
+  const setMessageLoading = useCallback(() => {
+    if (messages.length === 0) return;
+    const lastItem = messages[messages.length - 1];
+    if (lastItem && lastItem.status === 'local') {
+      // 向items中添加一个loading状态的item
+      setItems((prev) => {
+        return [...prev, {
+            key: 'msg_loading_' + Math.random().toString(),
+            role: 'ai',
+            content: '正在加载...',
+            loading: true,
+            className: 'bubble-item',
+          },
+        ];
+      });
+    } else if (lastItem && typeof lastItem.id === 'string' && lastItem.id.includes('msg_loading_')) {
+      // 移除items中最后一个item
+      setItems((prev) => {
+        return prev.slice(0, -1);
+      });
+    }
+  }, [messages]);
   useEffect(() => {
     eventBus.on('getNextSuggestionSuccess', handleGetNextSuggestionSuccess);
     return () => {
@@ -48,7 +70,8 @@ const BubbleList: React.FC<BubbleListProps> = memo(({ messages, isTyping }) => {
         className: 'bubble-item',
       }))
     );
-  }, [messages]);
+    setMessageLoading();
+  }, [messages, setMessageLoading]);
   const handleItemClick = useCallback(
     (item: { data: { description: string } }) => {
       eventBus.emit('suggestionSendMessage', item.data);
@@ -68,9 +91,15 @@ const BubbleList: React.FC<BubbleListProps> = memo(({ messages, isTyping }) => {
           />
         ),
       },
-      typing: isTyping ? { step: 1, interval: 10 } : undefined,
+      typing: isTyping ? { step: 5, interval: 50 } : undefined,
       // typing: isTyping ? true : undefined,
       messageRender: renderMarkdown,
+      onTypingComplete: () => {
+        const lastItem = messages[messages.length - 1];
+        if (messages.length > 0 && lastItem && lastItem.status === 'success') {
+          eventBus.emit('onTypingComplete');
+        }
+      },
     },
     local: {
       placement: 'end',
@@ -104,6 +133,7 @@ const BubbleList: React.FC<BubbleListProps> = memo(({ messages, isTyping }) => {
       ),
     },
   };
+
   return (
     <Flex gap="middle" vertical>
       <Bubble.List roles={roles} items={items} />

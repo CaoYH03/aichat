@@ -59,7 +59,7 @@ const Chat = () => {
           const { done, value } = await reader.read();
           if (done) {
             onSuccess(content);
-            handleGetNextSuggestion();
+            // handleGetNextSuggestion();
             eventBus.emit('requestSessionList', true);
             break;
           }
@@ -224,6 +224,12 @@ const Chat = () => {
       }
     }
   }, []);
+  useEffect(() => {
+    eventBus.on('onTypingComplete', handleGetNextSuggestion);
+    return () => {
+      eventBus.off('onTypingComplete', handleGetNextSuggestion);
+    };
+  }, [handleGetNextSuggestion]);
 
   return (
     <>
