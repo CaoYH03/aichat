@@ -1,13 +1,18 @@
 import BubbleList from '@client/components/Bubble';
+import Prompt from '@client/components/Prompt';
 import { Sender } from '@ant-design/x';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useXAgent, useXChat, XStream } from '@ant-design/x';
 import { motion } from 'framer-motion';
-import { chatMessage, checkSession, getNextSuggestion } from '@client/api';
+import {
+  chatMessage,
+  checkSession,
+  getNextSuggestion,
+  stopChat,
+} from '@client/api';
 import './index.less';
 import eventBus from '@client/hooks/eventMitt';
 import type { MessageInfo, MessageStatus } from '@ant-design/x/es/use-x-chat';
-import { addSearchParams } from '@client/utils';
 
 interface ChatMessage {
   query: string;
@@ -18,15 +23,13 @@ interface ChatMessage {
 // 聊天页面
 const Chat = () => {
   const [content, setContent] = useState('');
-  const [taskId, setTaskId] = useState('');
-  const [conversationId, setConversationId] = useState('');
-  const [messageId, setMessageId] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const abortRef = useRef(() => {});
   const currentTaskIdRef = useRef('');
   const currentConversationIdRef = useRef('');
   const currentMessageIdRef = useRef('');
-  const BubbleListRef = useRef<HTMLDivElement>(null);
+  const BubbleListRef = useRef<HTMLDivElement | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
   // 请求代理
   const [agent] = useXAgent({
     request: async ({ message }, { onUpdate, onSuccess }) => {
@@ -59,7 +62,6 @@ const Chat = () => {
           const { done, value } = await reader.read();
           if (done) {
             onSuccess(content);
-            // handleGetNextSuggestion();
             eventBus.emit('requestSessionList', true);
             break;
           }
@@ -68,19 +70,19 @@ const Chat = () => {
             const parsedChunk = JSON.parse(value.data);
             if (!parsedChunk.event.includes('message_end')) {
               if (parsedChunk.task_id !== currentTaskIdRef.current) {
-                setTaskId(parsedChunk.task_id);
+                currentTaskIdRef.current = parsedChunk.task_id;
               }
               if (
                 parsedChunk.conversation_id !== currentConversationIdRef.current
               ) {
-                setConversationId(parsedChunk.conversation_id);
+                currentConversationIdRef.current = parsedChunk.conversation_id;
               }
               if (parsedChunk.message_id !== currentMessageIdRef.current) {
-                setMessageId(parsedChunk.message_id);
+                currentMessageIdRef.current = parsedChunk.message_id;
               }
               if (parsedChunk.event.includes('agent_thought')) {
                 // 将agent_thought 的 thought 添加到content中
-                // content += `<div class="agent-thought">${parsedChunk.tool_input}</div>`;
+                // content += `<div class="agent-thought">${parsedChunk.observation}</div>`;
               }
               const newContent = parsedChunk.answer || '';
               content += newContent;
@@ -96,7 +98,11 @@ const Chat = () => {
     },
   });
   // 数据管理
-  const { onRequest, parsedMessages: messages, setMessages } = useXChat({
+  const {
+    onRequest,
+    parsedMessages: messages,
+    setMessages,
+  } = useXChat({
     agent,
   });
   // 初始化请求会话
@@ -105,7 +111,7 @@ const Chat = () => {
       const url = new URL(window.location.href);
       const id = url.searchParams.get('conversationId');
       if (id) {
-        setConversationId(id);
+        currentConversationIdRef.current = id;
         const { data } = await checkSession(id);
         // setMessageList(formatMessageList(data));
         setMessages(formatMessageList(data));
@@ -114,64 +120,59 @@ const Chat = () => {
     };
     initSession();
   }, [setMessages]);
-  // 保存 taskId
-  useEffect(() => {
-    if (taskId) {
-      currentTaskIdRef.current = taskId;
-    }
-  }, [taskId]);
-  // 保存 conversationId
-  useEffect(() => {
-    if (conversationId) {
-      currentConversationIdRef.current = conversationId;
-      addSearchParams('conversationId', conversationId);
-    } else {
-      currentConversationIdRef.current = '';
-    }
-  }, [conversationId]);
-  // 保存 messageId
-  useEffect(() => {
-    if (messageId) {
-      currentMessageIdRef.current = messageId;
-    }
-  }, [messageId]);
-
   const handleChange = useCallback((e: string) => {
     setContent(e);
   }, []);
-  // const handleCancel = () => {
-  //   abortRef.current();
-  //   stopChat(taskId, {
-  //     user: 'abc',
-  //   });
-  // };
+  const scrollToBottom = () => {
+    return setInterval(() => {
+      if (BubbleListRef.current) {
+        BubbleListRef.current.scrollTo({
+          top: BubbleListRef.current.scrollHeight,
+          behavior: 'smooth',
+        });
+      }
+    }, 300);
+  };
+  const handleCancel = () => {
+    abortRef.current();
+    stopChat(currentTaskIdRef.current, {
+      user: 'abc',
+    });
+  };
   const handleSubmit = (nextContent: string) => {
     setIsTyping(true);
     onRequest(nextContent);
     setContent('');
+    timerRef.current = scrollToBottom();
   };
   // 检查会话
-  const handleCheckSession = useCallback(async (event: unknown) => {
-    const sessionId = event as string;
-    const { data } = await checkSession(sessionId);
-    setMessages(formatMessageList(data));
-    setConversationId(sessionId);
-    setIsTyping(false);
-  }, [setMessages]);
+  const handleCheckSession = useCallback(
+    async (event: unknown) => {
+      const sessionId = event as string;
+      const { data } = await checkSession(sessionId);
+      setMessages(formatMessageList(data));
+      currentConversationIdRef.current = sessionId;
+      setIsTyping(false);
+    },
+    [setMessages]
+  );
   // 创建会话
   const handleCreateSession = useCallback(async () => {
     setMessages([]);
     setIsTyping(true);
-    setConversationId('');
+    currentConversationIdRef.current = '';
     // 清空 URL 中的 conversationId 参数
     const url = new URL(window.location.href);
     url.searchParams.delete('conversationId');
     window.history.replaceState({}, '', url.toString());
   }, [setMessages]);
   // 处理会话建议
-  const handleSuggestionSendMessage = useCallback((data: { description: string; }) => {
-    onRequest(data.description);
-  }, [onRequest]);
+  const handleSuggestionSendMessage = useCallback(
+    (data: { description: string }) => {
+      onRequest(data.description);
+    },
+    [onRequest]
+  );
   useEffect(() => {
     eventBus.on('checkSession', handleCheckSession);
     return () => {
@@ -230,16 +231,44 @@ const Chat = () => {
       eventBus.off('onTypingComplete', handleGetNextSuggestion);
     };
   }, [handleGetNextSuggestion]);
+  useEffect(() => {
+    eventBus.on('cancelScroll', () => {
+      setTimeout(() => {
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+        }
+      }, 300);
+    });
+    return () => {
+      eventBus.off('cancelScroll', () => {
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+        }
+      });
+    };
+  }, []);
 
   return (
     <>
       <div className="w-full h-full box-border p-[32px_8px]">
         <div className="h-full flex flex-col items-center justify-between gap-12">
-          <div
-            ref={BubbleListRef}
-            className="w-full h-full flex-1 overflow-scroll">
-            <BubbleList messages={messages} isTyping={isTyping} />
-          </div>
+          {messages.length > 0 ? (
+            <div
+              ref={BubbleListRef}
+              className="w-full h-full flex-1 overflow-scroll pb-[48px]">
+              <BubbleList messages={messages} isTyping={isTyping} />
+            </div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1 }}
+              className="w-full h-full flex justify-center items-center">
+              <Prompt />
+            </motion.div>
+          )}
+
           <div className="w-full flex justify-center">
             <motion.div
               initial={{ opacity: 0 }}
@@ -250,8 +279,9 @@ const Chat = () => {
                 className="w-[896px]! max-w-[896px] min-w-[320px]"
                 loading={agent.isRequesting()}
                 value={content}
+                placeholder="千言万语，不如一句：你好"
                 onChange={handleChange}
-                // onCancel={handleCancel}
+                onCancel={handleCancel}
                 onSubmit={handleSubmit}
               />
             </motion.div>

@@ -4,7 +4,6 @@ import SessionList from '@client/components/SessionList';
 import { Flex, Tooltip } from 'antd';
 import './index.less';
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 
 const IndexContent = () => {
   const [isFold, setIsFold] = useState(false);
@@ -14,26 +13,7 @@ const IndexContent = () => {
   return (
     <div className="h-[calc(100vh-16px)] flex-1 bg-[#f6f7fb] mr-[8px] mt-[8px] mb-[8px] rounded-[12px]">
       <Flex className="h-full">
-        <motion.div
-          initial={{ width: 300, opacity: 1 }}
-          animate={{
-            width: isFold ? 0 : 300,
-            opacity: 1,
-          }}
-          transition={{
-            duration: 0.3,
-            ease: 'easeInOut',
-          }}
-          style={{
-            willChange: 'width',
-            overflow: 'hidden',
-            overflowY: 'auto',
-            transform: 'translateZ(0)',
-            borderRadius: '12px 0 0 12px',
-            backgroundColor: '#fff',
-          }}>
-          <SessionList />
-        </motion.div>
+        <SessionList isFold={isFold} />
         <Tooltip title={isFold ? '展开对话记录' : '收起对话记录'}>
           <span
             onClick={handFold}

@@ -21,6 +21,7 @@ interface BubbleListProps {
 const BubbleList: React.FC<BubbleListProps> = memo(({ messages, isTyping }) => {
   const [items, setItems] = useState<unknown[]>([]);
   const handleGetNextSuggestionSuccess = useCallback((data: string[]) => {
+    console.log('handleGetNextSuggestionSuccess', data);
     setItems((prev) => {
       return [
         ...prev,
@@ -32,6 +33,7 @@ const BubbleList: React.FC<BubbleListProps> = memo(({ messages, isTyping }) => {
         },
       ];
     });
+    eventBus.emit('cancelScroll');
   }, []);
   const setMessageLoading = useCallback(() => {
     if (messages.length === 0) return;
@@ -136,7 +138,7 @@ const BubbleList: React.FC<BubbleListProps> = memo(({ messages, isTyping }) => {
 
   return (
     <Flex gap="middle" vertical>
-      <Bubble.List roles={roles} items={items} />
+      <Bubble.List roles={roles} items={items} autoScroll={false} />
     </Flex>
   );
 });
