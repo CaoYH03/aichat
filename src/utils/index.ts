@@ -5,7 +5,6 @@ export function addSearchParams(key: string, value: string) {
   // 设置或更新 sessionId 参数
   url.searchParams.set(key, value);
   if (!value) {
-    console.log('delete', key);
     url.searchParams.delete(key);
   }
   // 使用 History API 更新 URL 而不刷新页面

@@ -21,7 +21,6 @@ interface BubbleListProps {
 const BubbleList: React.FC<BubbleListProps> = memo(({ messages, isTyping }) => {
   const [items, setItems] = useState<unknown[]>([]);
   const handleGetNextSuggestionSuccess = useCallback((data: string[]) => {
-    console.log('handleGetNextSuggestionSuccess', data);
     setItems((prev) => {
       return [
         ...prev,

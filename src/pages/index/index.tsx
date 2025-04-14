@@ -8,7 +8,7 @@ const Index = () => {
     // 左右布局 侧边栏和聊天窗口 1:3
     <div className="layout-container">
       <Flex>
-        <SideBar className="w-[72px]" />
+        <SideBar />
         <IndexContent />
       </Flex>
     </div>
