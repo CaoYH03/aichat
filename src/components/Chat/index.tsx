@@ -13,11 +13,13 @@ import {
 import './index.less';
 import eventBus from '@client/hooks/eventMitt';
 import type { MessageInfo, MessageStatus } from '@ant-design/x/es/use-x-chat';
+import { addSearchParams } from '@client/utils';
 
 interface ChatMessage {
   query: string;
   agentThoughts: Array<{ thought: string }>;
   agent_thoughts: Array<{ thought: string }>;
+
 }
 
 // 聊天页面
@@ -76,6 +78,8 @@ const Chat = () => {
                 parsedChunk.conversation_id !== currentConversationIdRef.current
               ) {
                 currentConversationIdRef.current = parsedChunk.conversation_id;
+                // 添加conversationId到url中
+                addSearchParams('conversationId', parsedChunk.conversation_id);
               }
               if (parsedChunk.message_id !== currentMessageIdRef.current) {
                 currentMessageIdRef.current = parsedChunk.message_id;
@@ -113,9 +117,14 @@ const Chat = () => {
       if (id) {
         currentConversationIdRef.current = id;
         const { data } = await checkSession(id);
-        // setMessageList(formatMessageList(data));
-        setMessages(formatMessageList(data));
-        setIsTyping(false);
+        if (data && data.length > 0) {
+          // setMessageList(formatMessageList(data));
+          setMessages(formatMessageList(data));
+          setIsTyping(false);
+        } else {
+          addSearchParams('conversationId', '');
+          currentConversationIdRef.current = '';
+        }
       }
     };
     initSession();
@@ -222,6 +231,10 @@ const Chat = () => {
       const res = await getNextSuggestion(currentMessageIdRef.current);
       if (res.result === 'success' && res.data && res.data.length > 0) {
         eventBus.emit('getNextSuggestionSuccess', res.data);
+      }else {
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+        }
       }
     }
   }, []);
@@ -279,7 +292,7 @@ const Chat = () => {
                 className="w-[896px]! max-w-[896px] min-w-[320px]"
                 loading={agent.isRequesting()}
                 value={content}
-                placeholder="千言万语，不如一句：你好"
+                placeholder="随便问点什么"
                 onChange={handleChange}
                 onCancel={handleCancel}
                 onSubmit={handleSubmit}

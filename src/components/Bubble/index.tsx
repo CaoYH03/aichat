@@ -1,6 +1,6 @@
 import React, { memo, useEffect, useState, useCallback } from 'react';
-import { Flex, type GetProp } from 'antd';
-import { UserOutlined, FireOutlined } from '@ant-design/icons';
+import { Flex, type GetProp, Button } from 'antd';
+import { UserOutlined, FireOutlined, SyncOutlined, SmileOutlined, FrownOutlined } from '@ant-design/icons';
 import { Bubble, Prompts } from '@ant-design/x';
 import type { BubbleProps } from '@ant-design/x';
 import { MessageInfo } from '@ant-design/x/es/use-x-chat';
@@ -18,8 +18,15 @@ interface BubbleListProps {
   isTyping: boolean;
 }
 
+interface BubbleItem {
+  key: string | number;
+  role: string;
+  content: string | string[];
+  className?: string;
+}
+
 const BubbleList: React.FC<BubbleListProps> = memo(({ messages, isTyping }) => {
-  const [items, setItems] = useState<unknown[]>([]);
+  const [items, setItems] = useState<BubbleItem[]>([]);
   const handleGetNextSuggestionSuccess = useCallback((data: string[]) => {
     setItems((prev) => {
       return [
@@ -101,6 +108,18 @@ const BubbleList: React.FC<BubbleListProps> = memo(({ messages, isTyping }) => {
           eventBus.emit('onTypingComplete');
         }
       },
+      footer: (
+        <Flex>
+          <Button
+            size="small"
+            type="text"
+            icon={<SyncOutlined />}
+            style={{ marginInlineEnd: 'auto' }}
+          />
+          <Button size="small" type="text" icon={<SmileOutlined />} />
+          <Button size="small" type="text" icon={<FrownOutlined />} />
+        </Flex>
+      ),
     },
     local: {
       placement: 'end',
@@ -137,7 +156,7 @@ const BubbleList: React.FC<BubbleListProps> = memo(({ messages, isTyping }) => {
 
   return (
     <Flex gap="middle" vertical>
-      <Bubble.List roles={roles} items={items} autoScroll={false} />
+      <Bubble.List roles={roles} items={items} autoScroll={false}  />
     </Flex>
   );
 });

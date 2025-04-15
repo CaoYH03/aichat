@@ -5,15 +5,18 @@ import {
   EditOutlined,
   CloseOutlined,
   CheckOutlined,
+  CommentOutlined,
 } from '@ant-design/icons';
 import { getChatList, renameSession, deleteSession } from '@client/api';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import eventBus from '@client/hooks/eventMitt';
-import { addSearchParams } from '@client/utils';
-import { message, Button, Input, Spin, Divider } from 'antd';
+import { addSearchParams, compareDate } from '@client/utils';
+import { GetProp, message, Button, Input, Spin, Divider, Space } from 'antd';
 import InfiniteScroll from 'react-infinite-scroll-component';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import './index.less';
+
 interface SessionItem {
   key: string;
   label: string | React.ReactNode;
@@ -96,29 +99,49 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
       }
     },
   });
+  const groupable: GetProp<typeof Conversations, 'groupable'> = {
+    title: (group, { components: { GroupTitle } }) => {
+      return (
+        <GroupTitle>
+          <Space>
+            <CommentOutlined />
+            <span style={{ color: '#878aab' }}>{group}</span>
+          </Space>
+        </GroupTitle>
+      );
+    },
+  };
   const [searchParams] = useSearchParams();
 
-  const fetchChatList = useCallback(
-    async (isSelect = false, lastId = '') => {
-      const response = await getChatList({
-        user: 'abc',
-        last_id: lastId,
-        limit: 20,
+  const fetchChatList = useCallback(async (isSelect = false, lastId = '') => {
+    const response = await getChatList({
+      user: 'abc',
+      last_id: lastId,
+      limit: 20,
     });
+    console.log(response, 'response');
     setHasMore(response.has_more);
     if (lastId) {
       setItems((prev) => [
         ...prev,
-        ...response.data.map((item: { id: string; name: string }) => ({
-          key: item.id,
-          label: item.name,
-        })),
+        ...response.data.map(
+          (item: { id: string; name: string; updated_at: string }) => ({
+            key: item.id,
+            label: item.name,
+            timestamp: +(`${item.updated_at}`+ '000'),
+            // 今天，和最近七天 和 更早
+            group: compareDate((+(`${item.updated_at}`+ '000')), new Date().getTime()),
+          })
+        ),
       ]);
     } else {
       setItems(
-        response.data.map((item: { id: string; name: string }) => ({
+        response.data.map((item: { id: string; name: string; updated_at: string }) => ({
           key: item.id,
           label: item.name,
+          timestamp: +(`${item.updated_at}`+ '000'),
+          // 今天，和最近七天 和 更早
+          group: compareDate((+(`${item.updated_at}`+ '000')), new Date().getTime()),
         }))
       );
       if (isSelect) {
@@ -127,6 +150,9 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
       setIsCreateNewSession(false);
     }
   }, []);
+  const fetchMore = useCallback(() => {
+    fetchChatList(false, items[items.length - 1].key);
+  }, [items, fetchChatList]);
 
   useEffect(() => {
     fetchChatList();
@@ -147,6 +173,17 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
       eventBus.off('requestSessionList', handleRequestSessionList);
     };
   }, [fetchChatList]);
+
+  // 如果容器没有滚动条但还有更多数据，主动加载更多
+  useEffect(() => {
+    const scrollDiv = document.getElementById('scrollableDiv');
+    if (scrollDiv && items.length > 0 && hasMore) {
+      // 如果容器没有滚动条但还有更多数据，主动加载更多
+      if (scrollDiv.scrollHeight <= scrollDiv.clientHeight) {
+        fetchMore();
+      }
+    }
+  }, [items, hasMore, fetchMore]);
 
   const handleActiveChange = (key: string) => {
     setActiveKey(key);
@@ -212,9 +249,6 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
       message.error('删除失败');
     }
   };
-  const fetchMore = () => {
-    fetchChatList(false, items[items.length - 1].key);
-  };
   return (
     <motion.div
       id="scrollableDiv"
@@ -245,10 +279,13 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
             <Spin />
           </div>
         }
-        className="h-[300px] overflow-x-hidden overflow-y-auto"
-        endMessage={<Divider plain>It is all, nothing more 🤐</Divider>}
-        scrollableTarget="scrollableDiv"
-        style={{ overflow: 'hidden' }}>
+        className="h-[300px]"
+        endMessage={
+          <Divider plain style={{ color: '#ccc' }}>
+            没有更多了
+          </Divider>
+        }
+        scrollableTarget="scrollableDiv">
         <div className="bg-[#fff] p-[16px_16px_0_16px]">
           <div className="mb-4 flex">
             <Button
@@ -264,6 +301,8 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
             style={style}
             onActiveChange={handleActiveChange}
             menu={menuConfig}
+            groupable={groupable}
+            className="session-list"
           />
         </div>
       </InfiniteScroll>

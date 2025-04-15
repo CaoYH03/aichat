@@ -3,6 +3,7 @@ import { Modal, Input, Button, Space, Tabs, message } from 'antd';
 import { useState } from 'react';
 import { QqOutlined, WechatOutlined } from '@ant-design/icons';
 import type { ChangeEvent } from 'react';
+import './index.less'
 
 interface LoginModalProps {
   visible: boolean;
@@ -45,7 +46,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ visible, onClose }) => {
         <div className="py-5">
           <div className="mb-4">
             <Input
-              className="h-[40px]! login-input"
+              className="h-[40px]! phone-input"
               placeholder="请输入手机号"
               value={phone}
               onChange={(e: ChangeEvent<HTMLInputElement>) => setPhone(e.target.value)}
@@ -65,7 +66,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ visible, onClose }) => {
           </Space.Compact>
           <Button
             type="primary"
-            className="w-full h-10 mt-2 bg-indigo-600 hover:bg-indigo-700 rounded-full"
+            className="w-full h-[40px]! bg-indigo-500! hover:bg-indigo-500! rounded-full mt-8"
             loading={loading}
             onClick={handleLogin}
           >

@@ -6,15 +6,3 @@
   --TY-Text-1: #2c2c36;
   --TY-Line-1: #e8eaf2;
 }
-.login-input > .ant-input {
-  height: 40px;
-}
-/* 自定义全局样式 */
-.ant-modal-content {
-  border-radius: 12px !important;
-  padding: 24px !important;
-}
-
-.ant-tabs-nav::before {
-  border-bottom: none !important;
-}
