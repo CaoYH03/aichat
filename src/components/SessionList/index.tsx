@@ -119,7 +119,6 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
       last_id: lastId,
       limit: 20,
     });
-    console.log(response, 'response');
     setHasMore(response.has_more);
     if (lastId) {
       setItems((prev) => [
@@ -279,7 +278,6 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
             <Spin />
           </div>
         }
-        className="h-[300px]"
         endMessage={
           <Divider plain style={{ color: '#ccc' }}>
             没有更多了

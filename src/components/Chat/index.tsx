@@ -1,5 +1,6 @@
 import BubbleList from '@client/components/Bubble';
 import Prompt from '@client/components/Prompt';
+import ScrollToBottom from '@client/components/ScrollToBottom';
 import { Sender } from '@ant-design/x';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useXAgent, useXChat, XStream } from '@ant-design/x';
@@ -14,18 +15,21 @@ import './index.less';
 import eventBus from '@client/hooks/eventMitt';
 import type { MessageInfo, MessageStatus } from '@ant-design/x/es/use-x-chat';
 import { addSearchParams } from '@client/utils';
+import { throttle } from 'lodash';
+import { useEffectOnFirstChange } from '@client/hooks/useEffectOnFirstChange';
 
 interface ChatMessage {
   query: string;
-  agentThoughts: Array<{ thought: string }>;
+  agentThoughts: Array<{ thought: string; observation: string; tool: string }>;
   agent_thoughts: Array<{ thought: string }>;
-
 }
 
 // 聊天页面
 const Chat = () => {
   const [content, setContent] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isScrollToBottom, setIsScrollToBottom] = useState(false);
+  const [isRequesting, setIsRequesting] = useState(false);
   const abortRef = useRef(() => {});
   const currentTaskIdRef = useRef('');
   const currentConversationIdRef = useRef('');
@@ -86,7 +90,9 @@ const Chat = () => {
               }
               if (parsedChunk.event.includes('agent_thought')) {
                 // 将agent_thought 的 thought 添加到content中
-                // content += `<div class="agent-thought">${parsedChunk.observation}</div>`;
+                content += `<div class="agent-thought">${
+                  parsedChunk.observation || ''
+                }</div>`;
               }
               const newContent = parsedChunk.answer || '';
               content += newContent;
@@ -133,14 +139,10 @@ const Chat = () => {
     setContent(e);
   }, []);
   const scrollToBottom = () => {
-    return setInterval(() => {
-      if (BubbleListRef.current) {
-        BubbleListRef.current.scrollTo({
-          top: BubbleListRef.current.scrollHeight,
-          behavior: 'smooth',
-        });
-      }
-    }, 300);
+    if (BubbleListRef.current) {
+      BubbleListRef.current.scrollTop =
+        BubbleListRef.current.scrollHeight - BubbleListRef.current.clientHeight;
+    }
   };
   const handleCancel = () => {
     abortRef.current();
@@ -151,8 +153,9 @@ const Chat = () => {
   const handleSubmit = (nextContent: string) => {
     setIsTyping(true);
     onRequest(nextContent);
+    setIsRequesting(true);
     setContent('');
-    timerRef.current = scrollToBottom();
+    timerRef.current = setInterval(scrollToBottom, 1000);
   };
   // 检查会话
   const handleCheckSession = useCallback(
@@ -179,6 +182,7 @@ const Chat = () => {
   const handleSuggestionSendMessage = useCallback(
     (data: { description: string }) => {
       onRequest(data.description);
+      timerRef.current = setInterval(scrollToBottom, 10000);
     },
     [onRequest]
   );
@@ -216,7 +220,14 @@ const Chat = () => {
           {
             id: `msg_${index + Math.random().toString()}`,
             message: (item.agentThoughts || item.agent_thoughts)
-              .map((t: { thought: string }) => t.thought)
+              .map(
+                (t: { thought: string; observation: string; tool: string }) =>
+                  t.thought +
+                  `<span class="agent-observation">${
+                    JSON.parse(t.observation || JSON.stringify({}))[t.tool] ||
+                    ''
+                  }</span>`
+              )
               .join(''),
             status: 'ai' as MessageStatus,
           }
@@ -231,7 +242,7 @@ const Chat = () => {
       const res = await getNextSuggestion(currentMessageIdRef.current);
       if (res.result === 'success' && res.data && res.data.length > 0) {
         eventBus.emit('getNextSuggestionSuccess', res.data);
-      }else {
+      } else {
         if (timerRef.current) {
           clearInterval(timerRef.current);
         }
@@ -246,6 +257,7 @@ const Chat = () => {
   }, [handleGetNextSuggestion]);
   useEffect(() => {
     eventBus.on('cancelScroll', () => {
+      setIsRequesting(false);
       setTimeout(() => {
         if (timerRef.current) {
           clearInterval(timerRef.current);
@@ -254,21 +266,67 @@ const Chat = () => {
     });
     return () => {
       eventBus.off('cancelScroll', () => {
+        setIsRequesting(false);
         if (timerRef.current) {
           clearInterval(timerRef.current);
         }
       });
     };
   }, []);
+  useEffectOnFirstChange(() => {
+    const handleBubbleListScroll = () => {
+      const el = BubbleListRef.current;
 
+      if (el) {
+        let lastScrollTop = 0;
+        const handleScroll = () => {
+          const currentScrollTop = el.scrollTop;
+          setIsScrollToBottom(
+            el.scrollHeight - (currentScrollTop + el.clientHeight) <= 0.5
+          );
+          // 向上滚动
+          if (currentScrollTop < lastScrollTop) {
+            if (timerRef.current) {
+              clearInterval(timerRef.current);
+            }
+          }
+          lastScrollTop = currentScrollTop;
+        };
+
+        el.addEventListener('scroll', throttle(handleScroll, 300));
+
+        // 清理函数
+        return () => {
+          if (timerRef.current) {
+            clearInterval(timerRef.current);
+          }
+          el.removeEventListener('scroll', throttle(handleScroll, 300));
+        };
+      }
+    };
+    if (messages.length > 0) {
+      handleBubbleListScroll();
+    }
+  }, [messages]);
+  const handleScrollToBottom = () => {
+    if (BubbleListRef.current) {
+      BubbleListRef.current.scrollTo({
+        top: BubbleListRef.current.scrollHeight,
+        behavior: 'smooth',
+      });
+      if (agent.isRequesting()) {
+        timerRef.current = setInterval(scrollToBottom, 1000);
+      }
+    }
+  };
   return (
     <>
       <div className="w-full h-full box-border p-[32px_8px]">
-        <div className="h-full flex flex-col items-center justify-between gap-12">
+        <div className="h-full flex flex-col items-center justify-between relative">
           {messages.length > 0 ? (
             <div
               ref={BubbleListRef}
-              className="w-full h-full flex-1 overflow-scroll pb-[48px]">
+              className="w-full h-full flex-1 overflow-scroll pb-[32px]">
               <BubbleList messages={messages} isTyping={isTyping} />
             </div>
           ) : (
@@ -281,6 +339,10 @@ const Chat = () => {
               <Prompt />
             </motion.div>
           )}
+          <ScrollToBottom
+            onScrollToBottomClick={handleScrollToBottom}
+            visible={!isScrollToBottom && messages.length > 0}
+          />
 
           <div className="w-full flex justify-center">
             <motion.div
@@ -290,7 +352,7 @@ const Chat = () => {
               transition={{ duration: 1 }}>
               <Sender
                 className="w-[896px]! max-w-[896px] min-w-[320px]"
-                loading={agent.isRequesting()}
+                loading={isRequesting}
                 value={content}
                 placeholder="随便问点什么"
                 onChange={handleChange}

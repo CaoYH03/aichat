@@ -99,7 +99,7 @@ const BubbleList: React.FC<BubbleListProps> = memo(({ messages, isTyping }) => {
           />
         ),
       },
-      typing: isTyping ? { step: 5, interval: 50 } : undefined,
+      typing: isTyping ? { step: 10, interval: 50 } : undefined,
       // typing: isTyping ? true : undefined,
       messageRender: renderMarkdown,
       onTypingComplete: () => {

@@ -16,11 +16,22 @@ export default defineConfig({
     port: 3000, // 指定端口，可选
     proxy: {
       '/api': {
-        // target: 'https://dev-apidata.iyiou.com/spa/llm',
-        target: 'https://agi.iyiou.com/v1',
+        target: 'https://dev-apidata.iyiou.com/spa/llm',
+        // target: 'https://agi.iyiou.com/v1',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
+      },
+      '/spa': {
+        target: 'https://dev-apidata.iyiou.com/spa/',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/spa/, '')
       }
     }
+  },
+  css: {
+    modules: {
+      localsConvention: 'camelCase', // 将类名转换为驼峰命名（可选）
+      generateScopedName: '[name]__[local]__[hash:base64:5]', // 自定义类名生成规则
+    },
   },
 })

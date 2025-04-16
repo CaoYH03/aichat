@@ -10,7 +10,7 @@ const MarkdownCustom: React.FC<{ content: string }> = ({ content }) => {
     <Typography>
       <div className="tongyi-markdown">
         <ReactMarkdown
-          // disallowedElements={['summary', 'details']}
+          // disallowedElements={['summary']}
           rehypePlugins={[rehypeRaw]}
           remarkPlugins={[remarkGfm]}
           components={{
@@ -18,7 +18,9 @@ const MarkdownCustom: React.FC<{ content: string }> = ({ content }) => {
             code: MarkdownWithCharts as any,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             a: MarkdownWithLink as any,
-            // details: ({ children }: any) => <div className="thinking-content">{children}</div>,            // pre: MarkdownWithMermaid as any,
+            // details: ({ children }: any) => <details open className="thinking-content">{children}</details>,            // pre: MarkdownWithMermaid as any,
+            // class name 为 chat-loading 的 div 添加 loading 动画
+            // details: ({ children }) => <>{children}</>, // 只渲染 details 标签的子节点
           }}>
           {content}
         </ReactMarkdown>
