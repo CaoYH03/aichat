@@ -16,7 +16,6 @@ import eventBus from '@client/hooks/eventMitt';
 import type { MessageInfo, MessageStatus } from '@ant-design/x/es/use-x-chat';
 import { addSearchParams } from '@client/utils';
 import { throttle } from 'lodash';
-import { useEffectOnFirstChange } from '@client/hooks/useEffectOnFirstChange';
 
 interface ChatMessage {
   query: string;
@@ -38,6 +37,7 @@ const Chat = () => {
   const BubbleListRef = useRef<HTMLDivElement | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const lastScrollTop = useRef(0);
+  const isListenScrollToBottomRef = useRef(false);
   // 请求代理
   const [agent] = useXAgent({
     request: async ({ message }, { onUpdate, onSuccess }) => {
@@ -105,6 +105,7 @@ const Chat = () => {
           }
         }
       } finally {
+        // 释放锁
         reader.releaseLock();
       }
     },
@@ -126,7 +127,6 @@ const Chat = () => {
         currentConversationIdRef.current = id;
         const { data } = await checkSession(id);
         if (data && data.length > 0) {
-          // setMessageList(formatMessageList(data));
           setMessages(formatMessageList(data));
           setIsTyping(false);
         } else {
@@ -137,11 +137,14 @@ const Chat = () => {
     };
     initSession();
   }, [setMessages]);
+  //
   const handleChange = useCallback((e: string) => {
     setContent(e);
   }, []);
   const scrollToBottom = () => {
     if (BubbleListRef.current) {
+      console.log('scrollToBottom');
+      console.log(timerRef.current)
       BubbleListRef.current.scrollTop =
         BubbleListRef.current.scrollHeight - BubbleListRef.current.clientHeight;
     }
@@ -157,11 +160,12 @@ const Chat = () => {
     onRequest(nextContent);
     setIsRequesting(true);
     setContent('');
-    timerRef.current = setInterval(scrollToBottom, 1000);
+    scrollToBottom();
   };
   // 检查会话
   const handleCheckSession = useCallback(
     async (event: unknown) => {
+      isListenScrollToBottomRef.current = false;
       const sessionId = event as string;
       const { data } = await checkSession(sessionId);
       setMessages(formatMessageList(data));
@@ -172,6 +176,7 @@ const Chat = () => {
   );
   // 创建会话
   const handleCreateSession = useCallback(async () => {
+    isListenScrollToBottomRef.current = false;
     setIsScrollToBottom(true);
     setMessages([]);
     setIsTyping(true);
@@ -185,7 +190,7 @@ const Chat = () => {
   const handleSuggestionSendMessage = useCallback(
     (data: { description: string }) => {
       onRequest(data.description);
-      timerRef.current = setInterval(scrollToBottom, 10000);
+      timerRef.current = setInterval(scrollToBottom, 1000);
     },
     [onRequest]
   );
@@ -250,6 +255,7 @@ const Chat = () => {
       } else {
         if (timerRef.current) {
           clearInterval(timerRef.current);
+          timerRef.current = null;
         }
       }
     }
@@ -264,8 +270,10 @@ const Chat = () => {
     eventBus.on('cancelScroll', () => {
       setIsRequesting(false);
       if (timerRef.current) {
-        console.log('clearInterval----1', timerRef.current);
-        clearInterval(timerRef.current);
+        setTimeout(() => {
+          clearInterval(timerRef.current!);
+          timerRef.current = null;
+        }, 300);
       }
     });
     return () => {
@@ -273,28 +281,37 @@ const Chat = () => {
         setIsRequesting(false);
         if (timerRef.current) {
           clearInterval(timerRef.current);
+          timerRef.current = null;
         }
       });
     };
   }, []);
-  useEffectOnFirstChange(() => {
+  useEffect(() => {
+    if(!timerRef.current){
+      timerRef.current = setInterval(scrollToBottom, 1000);
+    }
     const handleBubbleListScroll = () => {
       const el = BubbleListRef.current;
 
       if (el) {
+       isListenScrollToBottomRef.current = true;
         el.addEventListener('scroll', throttle(handleScroll, 300));
 
         // 清理函数
         return () => {
           if (timerRef.current) {
             clearInterval(timerRef.current);
+            timerRef.current = null;
           }
           el.removeEventListener('scroll', throttle(handleScroll, 300));
         };
       }
     };
-    handleBubbleListScroll();
-  }, [messages, setMessages]);
+    if (!isListenScrollToBottomRef.current) {
+      handleBubbleListScroll();
+    }
+
+  }, [messages]);
   const handleScrollToBottom = () => {
     if (BubbleListRef.current) {
       BubbleListRef.current.scrollTo({
@@ -316,14 +333,13 @@ const Chat = () => {
     setIsScrollToBottom(
       el?.scrollHeight - (currentScrollTop + el?.clientHeight) <= 0.5
     );
-    console.log(el?.scrollHeight, currentScrollTop, el?.clientHeight);
-    console.log(el?.scrollHeight - (currentScrollTop + el?.clientHeight));
     // 向上滚动
-    if (currentScrollTop < lastScrollTop.current) {
+    if (currentScrollTop < lastScrollTop.current ) {
       if (timerRef.current) {
-        console.log('clearInterval----2', timerRef.current);
-        clearInterval(timerRef.current);
+        clearInterval(timerRef.current!);
+        timerRef.current = null;
       }
+
     }
     lastScrollTop.current = currentScrollTop;
   };
