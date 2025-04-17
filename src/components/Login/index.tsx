@@ -1,13 +1,27 @@
 // 登录弹窗
 import { Modal, Input, Button, Space, Tabs, message } from 'antd';
 import { useState } from 'react';
+import ReactDom from "react-dom/client";
 import { QqOutlined, WechatOutlined } from '@ant-design/icons';
 import type { ChangeEvent } from 'react';
 import styles from './index.module.less';
-import { getGeetest, geeVerify } from '@client/api/login';
+import {
+  getGeetest,
+  geeVerify,
+  getToken,
+  getUserInfo,
+} from '@client/api/login';
+import cookie from 'js-cookie';
+import { useUserStore } from '@client/store/user';
+
 interface LoginModalProps {
   visible: boolean;
   onClose: () => void;
+}
+
+// 添加静态方法类型
+interface LoginModalType extends React.FC<LoginModalProps> {
+  show: () => () => void;
 }
 
 interface CaptchaObj {
@@ -32,15 +46,16 @@ declare const initGeetest: (
   callback: (captchaObj: CaptchaObj) => void
 ) => void;
 const COUNT_DOWN_TIME = 60;
-const LoginModal: React.FC<LoginModalProps> = ({ visible, onClose }) => {
+const LoginModal: LoginModalType = ({ visible, onClose }) => {
   const [activeTab, setActiveTab] = useState('phone');
   const [phone, setPhone] = useState('15545705995');
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(COUNT_DOWN_TIME);
   const [isCaptha, setIsCaptha] = useState(false);
+  const setUserInfo = useUserStore((state) => state.setUserInfo);
   const handleSendCode = async () => {
-    if (!phone) {
+    if (!phone.trim()) {
       message.error('请输入手机号');
       return;
     }
@@ -99,18 +114,31 @@ const LoginModal: React.FC<LoginModalProps> = ({ visible, onClose }) => {
     }, 1000);
     captchaObj.destroy();
   };
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!phone || !code) {
       message.error('请输入手机号和验证码');
       return;
     }
     setLoading(true);
-    // 模拟登录请求
-    setTimeout(() => {
-      setLoading(false);
-      message.success('登录成功');
-      onClose();
-    }, 1500);
+    const response = await getToken({
+      mobile: phone,
+      verificationCode: code,
+      isRememberMe: true,
+      source: 'pc',
+      registerWebsite: 'ai.iyiou',
+    });
+    console.log(response);
+    if (response.code === 200) {
+      cookie.set('token', response.data.token);
+      const userInfo = await getUserInfo();
+      if (userInfo.code === 200 && userInfo.data) {
+        // 存在 zustand 中
+        setLoading(false);
+        setUserInfo(userInfo.data);
+        message.success('登录成功');
+        onClose();
+      }
+    };
   };
 
   const items = [
@@ -198,5 +226,29 @@ const LoginModal: React.FC<LoginModalProps> = ({ visible, onClose }) => {
     </Modal>
   );
 };
+LoginModal.show = () => {
+  const LoginContainer = document.createElement("div");
+  LoginContainer.className = "login-container";
+  document.body.appendChild(LoginContainer);
+  
+  const root = ReactDom.createRoot(LoginContainer);
+  const handleClose = () => {
+    // 先卸载组件
+    root.unmount();
+    // 再移除容器
+    if (document.body.contains(LoginContainer)) {
+      document.body.removeChild(LoginContainer);
+    }
+  };
 
+  root.render(
+    <LoginModal 
+      visible={true} 
+      onClose={handleClose}
+    />
+  );
+
+  // 返回关闭函数，允许外部调用关闭
+  return handleClose;
+};
 export default LoginModal;

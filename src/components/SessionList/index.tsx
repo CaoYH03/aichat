@@ -119,28 +119,29 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
       last_id: lastId,
       limit: 20,
     });
-    setHasMore(response.has_more);
+    setHasMore(response.hasMore || response.has_more);
     if (lastId) {
       setItems((prev) => [
         ...prev,
         ...response.data.map(
-          (item: { id: string; name: string; updated_at: string }) => ({
+          (item: { id: string; name: string; updatedAt: number; updated_at?: number }) => ({
             key: item.id,
             label: item.name,
-            timestamp: +(`${item.updated_at}`+ '000'),
+            timestamp: +(`${item.updatedAt || item.updated_at}`+ '000'),
             // 今天，和最近七天 和 更早
-            group: compareDate((+(`${item.updated_at}`+ '000')), new Date().getTime()),
+            group: compareDate((+(`${item.updatedAt || item.updated_at}`+ '000')), new Date().getTime()),
           })
         ),
       ]);
     } else {
       setItems(
-        response.data.map((item: { id: string; name: string; updated_at: string }) => ({
+        response.data.map((item: { id: string; name: string; updatedAt: number; updated_at?: number }) => ({
           key: item.id,
           label: item.name,
-          timestamp: +(`${item.updated_at}`+ '000'),
+          timestamp: +(`${item.updatedAt || item.updated_at}`+ '000'),
           // 今天，和最近七天 和 更早
-          group: compareDate((+(`${item.updated_at}`+ '000')), new Date().getTime()),
+          // group: compareDate((+(`${item.updated_at}`+ '000')), new Date().getTime()),
+          group: compareDate((+(`${item.updatedAt || item.updated_at}`+ '000')), new Date().getTime()),
         }))
       );
       if (isSelect) {
@@ -186,6 +187,7 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
 
   const handleActiveChange = (key: string) => {
     setActiveKey(key);
+    setIsCreateNewSession(false);
     if (key !== activeKey) {
       addSearchParams('conversationId', key);
       eventBus.emit('checkSession', key);

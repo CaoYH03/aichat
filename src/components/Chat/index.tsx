@@ -22,6 +22,7 @@ interface ChatMessage {
   query: string;
   agentThoughts: Array<{ thought: string; observation: string; tool: string }>;
   agent_thoughts: Array<{ thought: string }>;
+  answer: string;
 }
 
 // 聊天页面
@@ -36,6 +37,7 @@ const Chat = () => {
   const currentMessageIdRef = useRef('');
   const BubbleListRef = useRef<HTMLDivElement | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastScrollTop = useRef(0);
   // 请求代理
   const [agent] = useXAgent({
     request: async ({ message }, { onUpdate, onSuccess }) => {
@@ -88,12 +90,12 @@ const Chat = () => {
               if (parsedChunk.message_id !== currentMessageIdRef.current) {
                 currentMessageIdRef.current = parsedChunk.message_id;
               }
-              if (parsedChunk.event.includes('agent_thought')) {
-                // 将agent_thought 的 thought 添加到content中
-                content += `<div class="agent-thought">${
-                  parsedChunk.observation || ''
-                }</div>`;
-              }
+              // if (parsedChunk.event.includes('agent_thought')) {
+              //   // 将agent_thought 的 thought 添加到content中
+              //   content += `<div class="agent-thought">${
+              //     parsedChunk.observation || ''
+              //   }</div>`;
+              // }
               const newContent = parsedChunk.answer || '';
               content += newContent;
               onUpdate(content);
@@ -170,6 +172,7 @@ const Chat = () => {
   );
   // 创建会话
   const handleCreateSession = useCallback(async () => {
+    setIsScrollToBottom(true);
     setMessages([]);
     setIsTyping(true);
     currentConversationIdRef.current = '';
@@ -219,16 +222,18 @@ const Chat = () => {
           // ai
           {
             id: `msg_${index + Math.random().toString()}`,
-            message: (item.agentThoughts || item.agent_thoughts)
-              .map(
-                (t: { thought: string; observation: string; tool: string }) =>
-                  t.thought +
-                  `<span class="agent-observation">${
-                    JSON.parse(t.observation || JSON.stringify({}))[t.tool] ||
-                    ''
-                  }</span>`
-              )
-              .join(''),
+            // message: (item.agentThoughts || item.agent_thoughts)
+            //   .map(
+            //     (t: { thought: string; observation: string; tool: string }) =>
+            //       t.thought
+            //      +
+            //       `<span class="agent-observation">${
+            //         JSON.parse(t.observation || JSON.stringify({}))[t.tool] ||
+            //         ''
+            //       }</span>`
+            //   )
+            //   .join(''),
+            message: item.answer,
             status: 'ai' as MessageStatus,
           }
         );
@@ -258,11 +263,10 @@ const Chat = () => {
   useEffect(() => {
     eventBus.on('cancelScroll', () => {
       setIsRequesting(false);
-      setTimeout(() => {
-        if (timerRef.current) {
-          clearInterval(timerRef.current);
-        }
-      }, 300);
+      if (timerRef.current) {
+        console.log('clearInterval----1', timerRef.current);
+        clearInterval(timerRef.current);
+      }
     });
     return () => {
       eventBus.off('cancelScroll', () => {
@@ -278,21 +282,6 @@ const Chat = () => {
       const el = BubbleListRef.current;
 
       if (el) {
-        let lastScrollTop = 0;
-        const handleScroll = () => {
-          const currentScrollTop = el.scrollTop;
-          setIsScrollToBottom(
-            el.scrollHeight - (currentScrollTop + el.clientHeight) <= 0.5
-          );
-          // 向上滚动
-          if (currentScrollTop < lastScrollTop) {
-            if (timerRef.current) {
-              clearInterval(timerRef.current);
-            }
-          }
-          lastScrollTop = currentScrollTop;
-        };
-
         el.addEventListener('scroll', throttle(handleScroll, 300));
 
         // 清理函数
@@ -304,10 +293,8 @@ const Chat = () => {
         };
       }
     };
-    if (messages.length > 0) {
-      handleBubbleListScroll();
-    }
-  }, [messages]);
+    handleBubbleListScroll();
+  }, [messages, setMessages]);
   const handleScrollToBottom = () => {
     if (BubbleListRef.current) {
       BubbleListRef.current.scrollTo({
@@ -318,6 +305,27 @@ const Chat = () => {
         timerRef.current = setInterval(scrollToBottom, 1000);
       }
     }
+  };
+  const handleScroll = () => {
+    const el = BubbleListRef.current;
+    if (!el) {
+      return;
+    }
+
+    const currentScrollTop = el?.scrollTop;
+    setIsScrollToBottom(
+      el?.scrollHeight - (currentScrollTop + el?.clientHeight) <= 0.5
+    );
+    console.log(el?.scrollHeight, currentScrollTop, el?.clientHeight);
+    console.log(el?.scrollHeight - (currentScrollTop + el?.clientHeight));
+    // 向上滚动
+    if (currentScrollTop < lastScrollTop.current) {
+      if (timerRef.current) {
+        console.log('clearInterval----2', timerRef.current);
+        clearInterval(timerRef.current);
+      }
+    }
+    lastScrollTop.current = currentScrollTop;
   };
   return (
     <>
@@ -341,7 +349,7 @@ const Chat = () => {
           )}
           <ScrollToBottom
             onScrollToBottomClick={handleScrollToBottom}
-            visible={!isScrollToBottom && messages.length > 0}
+            visible={!isScrollToBottom}
           />
 
           <div className="w-full flex justify-center">

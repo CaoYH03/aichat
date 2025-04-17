@@ -1,3 +1,4 @@
+import cookie from 'js-cookie';
 interface GeeVerifyData {
   geetest_challenge: string; // 极验挑战码
   geetest_validate: string; // 极验验证码
@@ -40,5 +41,17 @@ export const getToken = async (data: VerificationCodeLoginData) => {
     },
     body: JSON.stringify(data),
   } );
+  return response.json();
+};
+/**
+ * 根据token获取用户信息
+ */
+export const getUserInfo = async () => {
+  const response = await fetch('/spa/user/userinfo', {
+    method: 'GET',
+    headers: {
+      Auth: cookie.get('token'),
+    },
+  });
   return response.json();
 };
