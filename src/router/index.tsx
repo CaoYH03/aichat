@@ -4,7 +4,7 @@ import { createBrowserRouter } from 'react-router-dom';
 import Index from '@client/pages/index';
 const router = createBrowserRouter([
   {
-    path: '/',
+    path: '/ai-agent',
     element: (
       <Suspense fallback={<div>加载中...</div>}>
         <Index />
