@@ -42,7 +42,9 @@ const MarkdownCustom: React.FC<{ content: string }> = ({ content }) => {
             },
             img: ({ src, alt }) => {
               return <div className="tongyi-markdown-img">
-                <img src={src} alt={alt} />
+                <img src={src || 'https://api.ditings.iyiou.com/assets/admin/qi.png'} alt={alt} onError={(e) => {
+                  e.currentTarget.src = 'https://api.ditings.iyiou.com/assets/admin/qi.png';
+                }} />
               </div>;
             },
           }}>

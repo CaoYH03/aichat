@@ -8,6 +8,7 @@ import { useUserStore } from '@client/store/user';
 const SideBar = () => {
   const userInfo = useUserStore((state) => state.userInfo);
   const content = useMemo(() => {
+    console.log(userInfo);
     return (
       <div className="w-[400px] h-[200px] bg-[#fff]">
         <div>
@@ -22,19 +23,22 @@ const SideBar = () => {
       </div>
     );
   }, [userInfo]);
+  const isLogin = useMemo(() => {
+    return userInfo?.userId;
+  }, [userInfo]);
   const handleLogin = () => {
-    if (!userInfo) {
+    if (!isLogin) {
       LoginModal.show();
     }
   };
   return (
-    <div className="w-[72px] h-screen flex flex-col justify-between items-center p-[16px_0]">
+    <div className="w-[72px] shrink-0 h-screen flex flex-col justify-between items-center p-[16px_0]">
       <img
         className="w-[calc(100%-16px)]"
         src="https://diting-hetu.iyiou.com/rprQtZu6HSGxmTmYtwsI.png"
         alt=""
       />
-      <Popover content={content} title="title" placement="rightTop">
+      <Popover content={isLogin ? content : ''} placement="rightTop">
         <HomeFilled
           onClick={handleLogin}
           className="align-self-end cursor-pointer"

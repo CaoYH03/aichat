@@ -3,18 +3,32 @@ import Chat from '@client/components/Chat';
 import SessionList from '@client/components/SessionList';
 import { Flex, Tooltip } from 'antd';
 import './index.less';
-import { useState } from 'react';
-
+import { useState, useEffect } from 'react';
+import GlobalSearch from '@client/components/GlobalSearch';
+import eventBus from '@client/hooks/eventMitt';
 const IndexContent = () => {
-  const [isFold, setIsFold] = useState(false);
+  const [isSessionFold, setIsSessionFold] = useState(false);
+  const [isGlobalSearchFold, setIsGlobalSearchFold] = useState(true);
   const handFold = () => {
-    setIsFold(!isFold);
+    if(isSessionFold && !isGlobalSearchFold) {
+      eventBus.emit('globalSearch', true);
+    }
+    setIsSessionFold(!isSessionFold);
   };
+  useEffect(() => {
+    eventBus.on('globalSearch', (status: boolean) => {
+      setIsGlobalSearchFold(status);
+      setIsSessionFold(true);
+    });
+    return () => {
+      eventBus.off('globalSearch');
+    };
+  }, []);
   return (
-    <div className="h-[calc(100vh-16px)] flex-1 bg-[#f6f7fb] mr-[8px] mt-[8px] mb-[8px] rounded-[12px]">
+    <div className="h-[calc(100vh-16px)] max-w-screen flex-1 bg-[#f6f7fb] mr-[8px] mt-[8px] mb-[8px] rounded-[12px]">
       <Flex className="h-full">
-        <SessionList isFold={isFold} />
-        <Tooltip title={isFold ? '展开对话记录' : '收起对话记录'}>
+        <SessionList isFold={isSessionFold} />
+        <Tooltip title={isSessionFold ? '展开对话记录' : '收起对话记录'}>
           <span
             onClick={handFold}
             className="w-[10px] h-[28px] relative left-[12px] self-center cursor-pointer unfold-icon">
@@ -25,7 +39,7 @@ const IndexContent = () => {
               width="5.997314453125"
               height="28.001953125"
               viewBox="0 0 5.997314453125 28.001953125"
-              style={{ transform: isFold ? 'rotate(180deg)' : 'none' }}>
+              style={{ transform: isSessionFold ? 'rotate(180deg)' : 'none' }}>
               <g>
                 <g>
                   <path
@@ -39,6 +53,7 @@ const IndexContent = () => {
           </span>
         </Tooltip>
         <Chat />
+        <GlobalSearch isFold={isGlobalSearchFold} />
       </Flex>
     </div>
   );

@@ -259,7 +259,7 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
         opacity: 1,
       }}
       transition={{
-        duration: 0.3,
+        duration: 0.2,
         ease: 'easeInOut',
       }}
       style={{
@@ -267,6 +267,7 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
         // overflow: 'hidden',
         overflowY: 'auto',
         height: '100%',
+        overflowX: 'hidden',
         transform: 'translateZ(0)',
         borderRadius: '12px 0 0 12px',
         backgroundColor: '#fff',

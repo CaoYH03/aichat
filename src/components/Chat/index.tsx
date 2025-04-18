@@ -2,7 +2,9 @@ import BubbleList from '@client/components/Bubble';
 import Prompt from '@client/components/Prompt';
 import ScrollToBottom from '@client/components/ScrollToBottom';
 import { Sender } from '@ant-design/x';
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { Button, Flex, ButtonProps } from 'antd';
+import { SearchOutlined } from '@ant-design/icons';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useXAgent, useXChat, XStream } from '@ant-design/x';
 import { motion } from 'framer-motion';
 import {
@@ -16,6 +18,7 @@ import eventBus from '@client/hooks/eventMitt';
 import type { MessageInfo, MessageStatus } from '@ant-design/x/es/use-x-chat';
 import { addSearchParams } from '@client/utils';
 import { throttle } from 'lodash';
+import { useIsLogin } from '@client/hooks/useIsLogin';
 
 interface ChatMessage {
   query: string;
@@ -23,6 +26,42 @@ interface ChatMessage {
   agent_thoughts: Array<{ thought: string }>;
   answer: string;
 }
+
+interface ActionsComponents {
+  SendButton: React.ComponentType<ButtonProps>;
+  ClearButton: React.ComponentType<ButtonProps>;
+  LoadingButton: React.ComponentType<ButtonProps>;
+  SpeechButton: React.ComponentType<ButtonProps>;
+};
+// 格式化消息列表
+const formatMessageList = (data: ChatMessage[]) => {
+  const messageList: MessageInfo<string>[] = [];
+  if (data.length > 0) {
+    data.forEach((item: ChatMessage, index: number) => {
+      messageList.push(
+        // local
+        {
+          id: `msg_${index + Math.random().toString()}`,
+          message: item.query,
+          status: 'local' as MessageStatus,
+        },
+        // ai
+        {
+          id: `msg_${index + Math.random().toString()}`,
+          message: item.answer,
+          status: 'ai' as MessageStatus,
+        }
+      );
+    });
+  }
+  return messageList;
+};
+// 滚动到底部
+const scrollToBottom = (el: HTMLDivElement) => {
+  if (el) {
+    el.scrollTop = el.scrollHeight - el.clientHeight;
+  }
+};
 
 // 聊天页面
 const Chat = () => {
@@ -38,6 +77,19 @@ const Chat = () => {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const lastScrollTop = useRef(0);
   const isListenScrollToBottomRef = useRef(false);
+  const GlobalSearchStatusRef = useRef(true);
+  useEffect(() => {
+    eventBus.on('globalSearch', (status: boolean) => {
+      if(GlobalSearchStatusRef.current === status) {
+        return;
+      }
+      GlobalSearchStatusRef.current = status;
+    });
+    return () => {
+      eventBus.off('globalSearch');
+    };
+  }, []);
+  const [isLogin] = useIsLogin();
   // 请求代理
   const [agent] = useXAgent({
     request: async ({ message }, { onUpdate, onSuccess }) => {
@@ -118,6 +170,32 @@ const Chat = () => {
   } = useXChat({
     agent,
   });
+  // 是否显示滚动到底部
+  const isScrollToBottomVisible = useMemo(() => {
+    return !isScrollToBottom && messages.length > 0;
+  }, [isScrollToBottom, messages.length]);
+  // sender底部
+  const senderFooter = ({ components }: { components: ActionsComponents }) => {
+    const { SendButton, LoadingButton } = components;
+    return (
+      <Flex justify="space-between" align="center">
+        <Flex gap="small" align="center">
+          <Button onClick={handleGlobalSearch} icon={<SearchOutlined />}>Global Search</Button>
+        </Flex>
+        <Flex align="center">
+          {agent.isRequesting() ? (
+            <LoadingButton type="default" />
+          ) : (
+            <SendButton type="primary" disabled={false} />
+          )}
+        </Flex>
+      </Flex>
+    );
+  }
+  const handleGlobalSearch = () => {
+    GlobalSearchStatusRef.current = !GlobalSearchStatusRef.current;
+    eventBus.emit('globalSearch', GlobalSearchStatusRef.current);
+  }
   // 初始化请求会话
   useEffect(() => {
     const initSession = async () => {
@@ -137,32 +215,28 @@ const Chat = () => {
     };
     initSession();
   }, [setMessages]);
-  //
+  // 输入框内容变化
   const handleChange = useCallback((e: string) => {
     setContent(e);
   }, []);
-  const scrollToBottom = () => {
-    if (BubbleListRef.current) {
-      console.log('scrollToBottom');
-      console.log(timerRef.current)
-      BubbleListRef.current.scrollTop =
-        BubbleListRef.current.scrollHeight - BubbleListRef.current.clientHeight;
-    }
-  };
+  // 点击取消
   const handleCancel = () => {
     abortRef.current();
     stopChat(currentTaskIdRef.current, {
       user: 'abc',
     });
   };
+  // 点击发送
   const handleSubmit = (nextContent: string) => {
     setIsTyping(true);
     onRequest(nextContent);
     setIsRequesting(true);
     setContent('');
-    scrollToBottom();
+    if(!timerRef.current){
+      timerRef.current = setInterval(() => scrollToBottom(BubbleListRef.current!), 500);
+    }
   };
-  // 检查会话
+  // 点击会话
   const handleCheckSession = useCallback(
     async (event: unknown) => {
       isListenScrollToBottomRef.current = false;
@@ -186,14 +260,16 @@ const Chat = () => {
     url.searchParams.delete('conversationId');
     window.history.replaceState({}, '', url.toString());
   }, [setMessages]);
-  // 处理会话建议
+  // 点击会话建议
   const handleSuggestionSendMessage = useCallback(
-    (data: { description: string }) => {
+    (event: unknown) => {
+      const data = event as { description: string };
       onRequest(data.description);
-      timerRef.current = setInterval(scrollToBottom, 1000);
+      timerRef.current = setInterval(() => scrollToBottom(BubbleListRef.current!), 500);
     },
     [onRequest]
   );
+  // 监听点击会话
   useEffect(() => {
     eventBus.on('checkSession', handleCheckSession);
     return () => {
@@ -201,6 +277,7 @@ const Chat = () => {
       eventBus.off('checkSession', handleCheckSession);
     };
   }, [handleCheckSession]);
+  // 监听创建会话
   useEffect(() => {
     eventBus.on('createSession', handleCreateSession);
     return () => {
@@ -213,39 +290,6 @@ const Chat = () => {
       eventBus.off('suggestionSendMessage', handleSuggestionSendMessage);
     };
   }, [handleSuggestionSendMessage]);
-  const formatMessageList = (data: ChatMessage[]) => {
-    const messageList: MessageInfo<string>[] = [];
-    if (data.length > 0) {
-      data.forEach((item: ChatMessage, index: number) => {
-        messageList.push(
-          // local
-          {
-            id: `msg_${index + Math.random().toString()}`,
-            message: item.query,
-            status: 'local' as MessageStatus,
-          },
-          // ai
-          {
-            id: `msg_${index + Math.random().toString()}`,
-            // message: (item.agentThoughts || item.agent_thoughts)
-            //   .map(
-            //     (t: { thought: string; observation: string; tool: string }) =>
-            //       t.thought
-            //      +
-            //       `<span class="agent-observation">${
-            //         JSON.parse(t.observation || JSON.stringify({}))[t.tool] ||
-            //         ''
-            //       }</span>`
-            //   )
-            //   .join(''),
-            message: item.answer,
-            status: 'ai' as MessageStatus,
-          }
-        );
-      });
-    }
-    return messageList;
-  };
   // 获取下一轮会话建议
   const handleGetNextSuggestion = useCallback(async () => {
     if (currentMessageIdRef.current) {
@@ -260,12 +304,14 @@ const Chat = () => {
       }
     }
   }, []);
+  // 监听获取下一轮会话建议
   useEffect(() => {
     eventBus.on('onTypingComplete', handleGetNextSuggestion);
     return () => {
       eventBus.off('onTypingComplete', handleGetNextSuggestion);
     };
   }, [handleGetNextSuggestion]);
+
   useEffect(() => {
     eventBus.on('cancelScroll', () => {
       setIsRequesting(false);
@@ -273,7 +319,7 @@ const Chat = () => {
         setTimeout(() => {
           clearInterval(timerRef.current!);
           timerRef.current = null;
-        }, 300);
+        }, 500);
       }
     });
     return () => {
@@ -286,10 +332,8 @@ const Chat = () => {
       });
     };
   }, []);
+  // 监听滚动事件
   useEffect(() => {
-    if(!timerRef.current){
-      timerRef.current = setInterval(scrollToBottom, 1000);
-    }
     const handleBubbleListScroll = () => {
       const el = BubbleListRef.current;
 
@@ -312,6 +356,7 @@ const Chat = () => {
     }
 
   }, [messages]);
+  // 滚动到底部
   const handleScrollToBottom = () => {
     if (BubbleListRef.current) {
       BubbleListRef.current.scrollTo({
@@ -319,10 +364,11 @@ const Chat = () => {
         behavior: 'smooth',
       });
       if (agent.isRequesting()) {
-        timerRef.current = setInterval(scrollToBottom, 1000);
+        timerRef.current = setInterval(() => scrollToBottom(BubbleListRef.current!), 500);
       }
     }
   };
+  // 滚动事件
   const handleScroll = () => {
     const el = BubbleListRef.current;
     if (!el) {
@@ -365,7 +411,7 @@ const Chat = () => {
           )}
           <ScrollToBottom
             onScrollToBottomClick={handleScrollToBottom}
-            visible={!isScrollToBottom}
+            visible={isScrollToBottomVisible}
           />
 
           <div className="w-full flex justify-center">
@@ -382,6 +428,9 @@ const Chat = () => {
                 onChange={handleChange}
                 onCancel={handleCancel}
                 onSubmit={handleSubmit}
+                disabled={!isLogin}
+                actions={false}
+                footer={senderFooter}
               />
             </motion.div>
           </div>

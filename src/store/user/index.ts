@@ -7,6 +7,7 @@ interface UserInfo {
   avatar: string;
   position: string;
   user_name: string;
+  userId: string;
 }
 
 interface UserStore {
