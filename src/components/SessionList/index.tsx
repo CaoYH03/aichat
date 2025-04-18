@@ -32,6 +32,7 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
     width: '200px',
     minHeight: '100%',
     padding: '0',
+    overflow: 'hidden',
   });
   const [hasMore, setHasMore] = useState(true);
 
@@ -259,7 +260,7 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
         opacity: 1,
       }}
       transition={{
-        duration: 0.2,
+        duration: 0.3,
         ease: 'easeInOut',
       }}
       style={{

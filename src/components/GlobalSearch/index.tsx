@@ -1,11 +1,12 @@
 // 全局搜索
 import { motion } from 'framer-motion';
+import { Input } from 'antd';
 const GlobalSearch = ({ isFold }: { isFold: boolean }) => {
   return (
     <motion.div
     initial={{ width: 0, opacity: 1 }}
     animate={{
-      width: isFold ? 0 : 300,
+      width: isFold ? 0 : 400,
       opacity: 1,
     }}
     transition={{
@@ -20,8 +21,8 @@ const GlobalSearch = ({ isFold }: { isFold: boolean }) => {
       borderRadius: '0 12px 12px 0',
       backgroundColor: '#fff',
     }}>
-      <div>
-        sdasd
+      <div className="padding-[20px]">
+        <Input.Search placeholder="搜索" />
       </div>
     </motion.div>
   );

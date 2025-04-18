@@ -67,7 +67,7 @@ const scrollToBottom = (el: HTMLDivElement) => {
 const Chat = () => {
   const [content, setContent] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [isScrollToBottom, setIsScrollToBottom] = useState(false);
+  const [isScrollToBottom, setIsScrollToBottom] = useState(true);
   const [isRequesting, setIsRequesting] = useState(false);
   const abortRef = useRef(() => {});
   const currentTaskIdRef = useRef('');
@@ -79,7 +79,8 @@ const Chat = () => {
   const isListenScrollToBottomRef = useRef(false);
   const GlobalSearchStatusRef = useRef(true);
   useEffect(() => {
-    eventBus.on('globalSearch', (status: boolean) => {
+    eventBus.on('globalSearch', (event: unknown) => {
+      const status = event as boolean;
       if(GlobalSearchStatusRef.current === status) {
         return;
       }

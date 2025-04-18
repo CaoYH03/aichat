@@ -11,6 +11,19 @@ export default defineConfig({
       '@client': path.resolve(__dirname, 'src'),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'antd-vendor': ['antd', '@ant-design/icons', '@ant-design/x'],
+          'chart-vendor': ['echarts'],
+          'markdown-vendor': ['react-markdown', 'remark-gfm', 'remark-breaks', 'rehype-raw'],
+        }
+      }
+    },
+    chunkSizeWarningLimit: 500
+  },
   server: {
     host: '0.0.0.0', // 监听所有网络接口
     port: 3000, // 指定端口，可选
