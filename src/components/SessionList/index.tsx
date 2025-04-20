@@ -11,7 +11,7 @@ import { getChatList, renameSession, deleteSession } from '@client/api';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import eventBus from '@client/hooks/eventMitt';
 import { addSearchParams, compareDate } from '@client/utils';
-import { GetProp, message, Button, Input, Spin, Divider, Space } from 'antd';
+import { GetProp, message, Button, Input, Divider, Space } from 'antd';
 import InfiniteScroll from 'react-infinite-scroll-component';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -277,11 +277,15 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
         dataLength={items.length}
         next={fetchMore}
         hasMore={hasMore}
+        // loader={
+        //   <div className="flex justify-center items-center pb-[16px]">
+        //     <Spin />
+        //   </div>
+        // }
         loader={
-          <div className="flex justify-center items-center pb-[16px]">
-            <Spin />
-          </div>
+          <></>
         }
+
         endMessage={
           <Divider plain style={{ color: '#ccc' }}>
             没有更多了

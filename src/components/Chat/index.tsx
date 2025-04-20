@@ -17,8 +17,9 @@ import './index.less';
 import eventBus from '@client/hooks/eventMitt';
 import type { MessageInfo, MessageStatus } from '@ant-design/x/es/use-x-chat';
 import { addSearchParams } from '@client/utils';
-import { throttle } from 'lodash';
+import { debounce, set } from 'lodash';
 import { useIsLogin } from '@client/hooks/useIsLogin';
+import { toNamespacedPath } from 'path';
 
 interface ChatMessage {
   query: string;
@@ -58,6 +59,7 @@ const formatMessageList = (data: ChatMessage[]) => {
 };
 // 滚动到底部
 const scrollToBottom = (el: HTMLDivElement) => {
+  console.log('滚动到底部');
   if (el) {
     el.scrollTop = el.scrollHeight - el.clientHeight;
   }
@@ -234,7 +236,9 @@ const Chat = () => {
     setIsRequesting(true);
     setContent('');
     if(!timerRef.current){
+     setTimeout(() => {
       timerRef.current = setInterval(() => scrollToBottom(BubbleListRef.current!), 500);
+     }, 1000);  
     }
   };
   // 点击会话
@@ -265,8 +269,13 @@ const Chat = () => {
   const handleSuggestionSendMessage = useCallback(
     (event: unknown) => {
       const data = event as { description: string };
+      if(!timerRef.current){
+       setTimeout(() => {
+        timerRef.current = setInterval(() => scrollToBottom(BubbleListRef.current!), 500);
+       }, 1000);
+      }
       onRequest(data.description);
-      timerRef.current = setInterval(() => scrollToBottom(BubbleListRef.current!), 500);
+      
     },
     [onRequest]
   );
@@ -301,6 +310,7 @@ const Chat = () => {
         if (timerRef.current) {
           clearInterval(timerRef.current);
           timerRef.current = null;
+          console.log('取消滚动-1');
         }
       }
     }
@@ -320,6 +330,7 @@ const Chat = () => {
         setTimeout(() => {
           clearInterval(timerRef.current!);
           timerRef.current = null;
+          console.log('取消滚动-2');
         }, 500);
       }
     });
@@ -329,6 +340,7 @@ const Chat = () => {
         if (timerRef.current) {
           clearInterval(timerRef.current);
           timerRef.current = null;
+          console.log('取消滚动-3');
         }
       });
     };
@@ -340,15 +352,17 @@ const Chat = () => {
 
       if (el) {
        isListenScrollToBottomRef.current = true;
-        el.addEventListener('scroll', throttle(handleScroll, 300));
+        el.addEventListener('scroll', debounce(handleScroll, 300));
 
         // 清理函数
         return () => {
           if (timerRef.current) {
             clearInterval(timerRef.current);
             timerRef.current = null;
+            console.log('取消滚动-4');
+
           }
-          el.removeEventListener('scroll', throttle(handleScroll, 300));
+          el.removeEventListener('scroll', debounce(handleScroll, 300));
         };
       }
     };
@@ -383,8 +397,9 @@ const Chat = () => {
     // 向上滚动
     if (currentScrollTop < lastScrollTop.current ) {
       if (timerRef.current) {
-        clearInterval(timerRef.current!);
+        clearInterval(timerRef.current!)
         timerRef.current = null;
+        console.log('取消滚动-5');
       }
 
     }
