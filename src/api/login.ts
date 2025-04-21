@@ -1,4 +1,5 @@
 import cookie from 'js-cookie';
+import request from '@client/request';
 interface GeeVerifyData {
   geetest_challenge: string; // 极验挑战码
   geetest_validate: string; // 极验验证码
@@ -21,37 +22,34 @@ export const getGeetest = async () => {
  * 极验验证发送验证码
  */
 export const geeVerify = async (data: GeeVerifyData) => {
-  const response = await fetch('/spa/api/geetest/second_register', {
-    method: 'POST',
+  return request('/spa/api/geetest/second_register', {
+    method: 'POST', 
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(data),
   });
-  return response.json();
 };
 /**
  * 获取 token
  */
 export const getToken = async (data: VerificationCodeLoginData) => {
-  const response = await fetch('/spa/user/verification_code/login', {
+  return request('/spa/user/verification_code/login', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(data),
   } );
-  return response.json();
 };
 /**
  * 根据token获取用户信息
  */
 export const getUserInfo = async () => {
-  const response = await fetch('/spa/user/userinfo', {
+    return request('/spa/user/userinfo', {
     method: 'GET',
     headers: {
-      Auth: cookie.get('token'),
+      Auth: cookie.get('token') || '',
     },
   });
-  return response.json();
 };

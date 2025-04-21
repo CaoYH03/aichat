@@ -112,7 +112,7 @@ const BubbleList: React.FC<BubbleListProps> = memo(({ messages, isTyping }) => {
           />
         ),
       },
-      typing: isTyping ? { step: 1, interval: 15 } : undefined,
+      typing: isTyping ? { step: 1, interval: 15,suffix: <>💗</> } : undefined,
       // typing: isTyping ? true : undefined,
       messageRender: renderMarkdown,
       onTypingComplete: () => {
@@ -169,7 +169,7 @@ const BubbleList: React.FC<BubbleListProps> = memo(({ messages, isTyping }) => {
 
   return (
     <Flex gap="middle" vertical>
-      <Bubble.List roles={roles} items={items} />
+      <Bubble.List roles={roles} items={items} autoScroll={false} />
     </Flex>
   );
 });

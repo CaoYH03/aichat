@@ -61,7 +61,7 @@ const formatMessageList = (data: ChatMessage[]) => {
 const scrollToBottom = (el: HTMLDivElement) => {
   console.log('滚动到底部');
   if (el) {
-    el.scrollTop = el.scrollHeight - el.clientHeight;
+    el.scrollTop = el.scrollHeight - el.clientHeight + 168;
   }
 };
 
@@ -235,6 +235,7 @@ const Chat = () => {
     onRequest(nextContent);
     setIsRequesting(true);
     setContent('');
+    scrollToBottom(BubbleListRef.current!);
     if(!timerRef.current){
      setTimeout(() => {
       timerRef.current = setInterval(() => scrollToBottom(BubbleListRef.current!), 500);
