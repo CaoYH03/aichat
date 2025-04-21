@@ -2,12 +2,16 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react-swc'
 import tailwindcss from "@tailwindcss/vite";
 import path from 'path';
-const isDev = process.env.NODE_ENV === 'development';
+const basMap = {
+  local: '/',
+  development: 'https://dev-data.iyiou.com/ai-agent/',
+  production: 'https://data.iyiou.com/ai-agent/',
+}
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  base: isDev ? '/' : 'https://data.iyiou.com/ai-agent/',
+  base: basMap[process.env.NODE_ENV as keyof typeof basMap],
   resolve: {
     alias: {
       '@client': path.resolve(__dirname, 'src'),
@@ -19,7 +23,6 @@ export default defineConfig({
         manualChunks: {
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
           'antd-vendor': ['antd', '@ant-design/icons', '@ant-design/x'],
-          'chart-vendor': ['echarts'],
           'markdown-vendor': ['react-markdown', 'remark-gfm', 'remark-breaks', 'rehype-raw'],
         }
       }

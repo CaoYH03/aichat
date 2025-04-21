@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Flex, type GetProp, Button } from "antd";
 import {
   UserOutlined,
@@ -31,7 +31,7 @@ interface BubbleItem {
   className?: string;
 }
 
-const BubbleList: React.FC<BubbleListProps> = memo(({ messages, isTyping }) => {
+const BubbleList: React.FC<BubbleListProps> = React.forwardRef(({ messages, isTyping }, ref) => {
   const [items, setItems] = useState<BubbleItem[]>([]);
   const handleGetNextSuggestionSuccess = useCallback((event: unknown) => {
     const data = event as string[];
@@ -46,7 +46,6 @@ const BubbleList: React.FC<BubbleListProps> = memo(({ messages, isTyping }) => {
         },
       ];
     });
-    eventBus.emit("cancelScroll");
   }, []);
   const setMessageLoading = useCallback(() => {
     if (messages.length === 0) return;
@@ -112,7 +111,7 @@ const BubbleList: React.FC<BubbleListProps> = memo(({ messages, isTyping }) => {
           />
         ),
       },
-      typing: isTyping ? { step: 1, interval: 15,suffix: <>💗</> } : undefined,
+      typing: isTyping ? { step: 1, interval: 15,suffix: <img style={{width: '16px', height: '16px'}} src={'https://gw.alicdn.com/imgextra/i1/O1CN01qPUtnk1KwvitibrhI_!!6000000001229-54-tps-50-50.apng'} /> } : undefined,
       // typing: isTyping ? true : undefined,
       messageRender: renderMarkdown,
       onTypingComplete: () => {
@@ -168,9 +167,7 @@ const BubbleList: React.FC<BubbleListProps> = memo(({ messages, isTyping }) => {
   };
 
   return (
-    <Flex gap="middle" vertical>
-      <Bubble.List roles={roles} items={items} autoScroll={false} />
-    </Flex>
+      <Bubble.List ref={ref} className="h-full pb-[32px]" roles={roles} items={items} />
   );
 });
 
