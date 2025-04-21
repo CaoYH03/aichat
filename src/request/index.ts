@@ -1,7 +1,7 @@
 // 封装 fetch
 import Cookies from 'js-cookie';
 const baseUrl = import.meta.env.VITE_BASE_URL;
-const request = async (url: string, options: RequestInit) => {
+const request = async (url: string, options: RequestInit, isJson = true) => {
   const response = await fetch(`${baseUrl}${url}`, {
     ...options,
     headers: {
@@ -9,7 +9,10 @@ const request = async (url: string, options: RequestInit) => {
       'Auth': Cookies.get('token') || '',
     },
   });
-  return response.json();
+  if (isJson) {
+    return response.json();
+  }
+  return response;
 };
 
 export default request;

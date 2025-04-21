@@ -17,9 +17,8 @@ import './index.less';
 import eventBus from '@client/hooks/eventMitt';
 import type { MessageInfo, MessageStatus } from '@ant-design/x/es/use-x-chat';
 import { addSearchParams } from '@client/utils';
-import { debounce, set } from 'lodash';
+import { debounce } from 'lodash';
 import { useIsLogin } from '@client/hooks/useIsLogin';
-import { toNamespacedPath } from 'path';
 
 interface ChatMessage {
   query: string;

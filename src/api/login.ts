@@ -15,8 +15,9 @@ interface VerificationCodeLoginData {
 }
 
 export const getGeetest = async () => {
-  const response = await fetch('/spa/api/geetest/first_register');
-  return response.json();
+  return request('/spa/api/geetest/first_register', {
+    method: 'GET',
+  });
 };
 /**
  * 极验验证发送验证码

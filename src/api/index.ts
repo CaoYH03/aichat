@@ -8,7 +8,7 @@ export const chatMessage = async (data: unknown) => {
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(data),
-  });
+  }, false);
 };
 // 终止聊天
 export const stopChat = async (task_id: string, data: unknown) => {
