@@ -16,7 +16,8 @@ import InfiniteScroll from 'react-infinite-scroll-component';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import './index.less';
-
+import { useIsLogin } from '@client/hooks/useIsLogin';
+import LoginModal from '@client/components/Login';
 interface SessionItem {
   key: string;
   label: string | React.ReactNode;
@@ -35,6 +36,7 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
     overflow: 'hidden',
   });
   const [hasMore, setHasMore] = useState(true);
+  const [isLogin] = useIsLogin();
 
   const menuConfig: ConversationsProps['menu'] = (conversation) => ({
     items: [
@@ -154,14 +156,17 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
   const fetchMore = useCallback(() => {
     fetchChatList(false, items[items.length - 1].key);
   }, [items, fetchChatList]);
-
+// 获取会话列表
   useEffect(() => {
+    if (!isLogin) {
+      return;
+    }
     fetchChatList();
     const conversationId = searchParams.get('conversationId');
     if (conversationId) {
       setActiveKey(conversationId);
     }
-  }, [fetchChatList, searchParams]);
+  }, [fetchChatList, searchParams, isLogin]);
 
   useEffect(() => {
     const handleRequestSessionList = (event: unknown) => {
@@ -195,6 +200,10 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
     }
   };
   const handleCreateSession = () => {
+    if (!isLogin) {
+      LoginModal.show();
+      return;
+    }
     if (isCreateNewSession) {
       message.success('已是最新会话');
       // setActiveKey('');
@@ -273,45 +282,53 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
         borderRadius: '12px 0 0 12px',
         backgroundColor: '#fff',
       }}>
-      <InfiniteScroll
-        dataLength={items.length}
-        next={fetchMore}
-        hasMore={hasMore}
-        // loader={
-        //   <div className="flex justify-center items-center pb-[16px]">
-        //     <Spin />
-        //   </div>
-        // }
-        loader={
-          <></>
+        {
+          isLogin ? (
+            <InfiniteScroll
+            dataLength={items.length}
+            next={fetchMore}
+            hasMore={hasMore}
+            loader={
+              <></>
+            }
+    
+            endMessage={
+              <Divider plain style={{ color: '#ccc' }}>
+                没有更多了
+              </Divider>
+            }
+            scrollableTarget="scrollableDiv">
+            <div className="bg-[#fff] p-[16px_16px_0_16px]">
+              <div className="mb-4 flex">
+                <Button
+                  disabled={!isLogin}
+                  onClick={handleCreateSession}
+                  type="primary"
+                  className="w-full bg-[#615ced]! text-[#fff]">
+                  新建会话
+                </Button>
+              </div>
+              <Conversations
+                items={items}
+                activeKey={activeKey}
+                style={style}
+                onActiveChange={handleActiveChange}
+                menu={menuConfig}
+                groupable={groupable  }
+                className="session-list"
+              />
+            </div>
+          </InfiniteScroll>
+          ) : (
+            <div className='h-full p-[16px_16px_0_16px] flex flex-col items-center justify-center gap-[10px]'>
+              <h2 className='text-[24px] font-bold text-[#333]'>   登录领权益
+              </h2>
+              <h3 className='text-[16px] text-[#666] text-center'> 领音视频时长、全文翻译数、存储空间等多项权益 </h3>
+              <Button type='primary' onClick={() => LoginModal.show()}>立即登录</Button>
+            </div>
+          )
+          
         }
-
-        endMessage={
-          <Divider plain style={{ color: '#ccc' }}>
-            没有更多了
-          </Divider>
-        }
-        scrollableTarget="scrollableDiv">
-        <div className="bg-[#fff] p-[16px_16px_0_16px]">
-          <div className="mb-4 flex">
-            <Button
-              onClick={handleCreateSession}
-              type="primary"
-              className="w-full bg-[#615ced]! text-[#fff]">
-              新建会话
-            </Button>
-          </div>
-          <Conversations
-            items={items}
-            activeKey={activeKey}
-            style={style}
-            onActiveChange={handleActiveChange}
-            menu={menuConfig}
-            groupable={groupable}
-            className="session-list"
-          />
-        </div>
-      </InfiniteScroll>
     </motion.div>
   );
 };

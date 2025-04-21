@@ -18,6 +18,7 @@ import eventBus from '@client/hooks/eventMitt';
 import type { MessageInfo, MessageStatus } from '@ant-design/x/es/use-x-chat';
 import { addSearchParams } from '@client/utils';
 import { useIsLogin } from '@client/hooks/useIsLogin';
+import { h } from 'node_modules/framer-motion/dist/types.d-B50aGbjN';
 
 interface ChatMessage {
   query: string;
@@ -168,11 +169,25 @@ const Chat = () => {
     console.log('GlobalSearchStatusRef.current', GlobalSearchStatusRef.current);
     eventBus.emit('globalSearch', GlobalSearchStatusRef.current);
   }
+    // 创建会话
+    const handleCreateSession = useCallback(async () => {
+      setMessages([]);
+      setIsTyping(true);
+      currentConversationIdRef.current = '';
+      // 清空 URL 中的 conversationId 参数
+      const url = new URL(window.location.href);
+      url.searchParams.delete('conversationId');
+      window.history.replaceState({}, '', url.toString());
+    }, [setMessages]);
   // 初始化请求会话
   useEffect(() => {
     const initSession = async () => {
       const url = new URL(window.location.href);
       const id = url.searchParams.get('conversationId');
+      if (!isLogin) {
+        sessionStorage.setItem('preConversationId', id || '');
+        return;
+      }
       if (id) {
         currentConversationIdRef.current = id;
         const { data } = await checkSession(id);
@@ -180,13 +195,12 @@ const Chat = () => {
           setMessages(formatMessageList(data));
           setIsTyping(false);
         } else {
-          addSearchParams('conversationId', '');
-          currentConversationIdRef.current = '';
+          handleCreateSession();
         }
       }
     };
     initSession();
-  }, [setMessages]);
+  }, [setMessages, isLogin, handleCreateSession]);
   // 输入框内容变化
   const handleChange = useCallback((e: string) => {
     setContent(e);
@@ -221,16 +235,6 @@ const Chat = () => {
     },
     [setMessages]
   );
-  // 创建会话
-  const handleCreateSession = useCallback(async () => {
-    setMessages([]);
-    setIsTyping(true);
-    currentConversationIdRef.current = '';
-    // 清空 URL 中的 conversationId 参数
-    const url = new URL(window.location.href);
-    url.searchParams.delete('conversationId');
-    window.history.replaceState({}, '', url.toString());
-  }, [setMessages]);
   // 点击会话建议
   const handleSuggestionSendMessage = useCallback(
     (event: unknown) => {
@@ -307,7 +311,7 @@ const Chat = () => {
           )}
           <ScrollToBottom
             onScrollToBottomClick={handleScrollToBottom}
-            visible={true}
+            visible={messages.length > 0}
           />
 
           <div className="w-full flex justify-center">
@@ -316,7 +320,7 @@ const Chat = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 1 }}>
-              <Button className="m-[16px_0]" onClick={handleGlobalSearch} icon={<SearchOutlined />}>全局搜索</Button>
+              <Button type='primary' className="m-[16px_0]" onClick={handleGlobalSearch} icon={<SearchOutlined />}>全局搜索</Button>
               <Sender
                 className="w-[896px]! max-w-[896px] min-w-[320px]"
                 loading={isRequesting}

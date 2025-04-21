@@ -17,5 +17,12 @@ interface UserStore {
 
 export const useUserStore = create<UserStore>((set) => ({
   userInfo: null,
-  setUserInfo: (userInfo: UserInfo) => set({ userInfo }),
+  setUserInfo: (userInfo: UserInfo) => {
+    set({ userInfo });
+    if (userInfo.userId) {
+      localStorage.setItem('userInfo', JSON.stringify(userInfo));
+    } else {
+      localStorage.removeItem('userInfo');
+    }
+  },
 }));
