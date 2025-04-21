@@ -2,9 +2,9 @@ import BubbleList from '@client/components/Bubble';
 import Prompt from '@client/components/Prompt';
 import ScrollToBottom from '@client/components/ScrollToBottom';
 import { Sender } from '@ant-design/x';
-import { Button, Flex, ButtonProps } from 'antd';
+import { Button } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useXAgent, useXChat, XStream } from '@ant-design/x';
 import { motion } from 'framer-motion';
 import {
@@ -25,13 +25,6 @@ interface ChatMessage {
   agent_thoughts: Array<{ thought: string }>;
   answer: string;
 }
-
-interface ActionsComponents {
-  SendButton: React.ComponentType<ButtonProps>;
-  ClearButton: React.ComponentType<ButtonProps>;
-  LoadingButton: React.ComponentType<ButtonProps>;
-  SpeechButton: React.ComponentType<ButtonProps>;
-};
 // 格式化消息列表
 const formatMessageList = (data: ChatMessage[]) => {
   const messageList: MessageInfo<string>[] = [];
@@ -57,18 +50,18 @@ const formatMessageList = (data: ChatMessage[]) => {
 };
 // 滚动到底部
 const scrollToBottom = (el: HTMLDivElement) => {
-  console.log('滚动到底部');
-  if (el) {
-    el.scrollTop = el.scrollHeight - el.clientHeight;
-  }
+  const elDom = el.nativeElement;
+  setTimeout(() => {
+  elDom.scrollTop = elDom.scrollHeight;
+  }, 100);
 };
 
 // 聊天页面
 const Chat = () => {
   const [content, setContent] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [isScrollToBottom, setIsScrollToBottom] = useState(true);
   const [isRequesting, setIsRequesting] = useState(false);
+  const [isTypingComplete, setIsTypingComplete] = useState(true);
   const abortRef = useRef(() => {});
   const currentTaskIdRef = useRef('');
   const currentConversationIdRef = useRef('');
@@ -78,6 +71,7 @@ const Chat = () => {
   useEffect(() => {
     eventBus.on('globalSearch', (event: unknown) => {
       const status = event as boolean;
+      console.log('status', status);
       if(GlobalSearchStatusRef.current === status) {
         return;
       }
@@ -168,30 +162,10 @@ const Chat = () => {
   } = useXChat({
     agent,
   });
-  // 是否显示滚动到底部
-  const isScrollToBottomVisible = useMemo(() => {
-    return !isScrollToBottom && messages.length > 0;
-  }, [isScrollToBottom, messages.length]);
-  // sender底部
-  const senderFooter = ({ components }: { components: ActionsComponents }) => {
-    const { SendButton, LoadingButton } = components;
-    return (
-      <Flex justify="space-between" align="center">
-        <Flex gap="small" align="center">
-          <Button onClick={handleGlobalSearch} icon={<SearchOutlined />}>Global Search</Button>
-        </Flex>
-        <Flex align="center">
-          {agent.isRequesting() ? (
-            <LoadingButton type="default" />
-          ) : (
-            <SendButton type="primary" disabled={false} />
-          )}
-        </Flex>
-      </Flex>
-    );
-  }
   const handleGlobalSearch = () => {
+    console.log('handleGlobalSearch');
     GlobalSearchStatusRef.current = !GlobalSearchStatusRef.current;
+    console.log('GlobalSearchStatusRef.current', GlobalSearchStatusRef.current);
     eventBus.emit('globalSearch', GlobalSearchStatusRef.current);
   }
   // 初始化请求会话
@@ -226,11 +200,15 @@ const Chat = () => {
   };
   // 点击发送
   const handleSubmit = (nextContent: string) => {
+    console.log('nextContent', nextContent);
     setIsTyping(true);
     onRequest(nextContent);
     setIsRequesting(true);
-    setContent('');
-    scrollToBottom(BubbleListRef.current!);
+    setIsTypingComplete(false);
+    setContent('')
+    setTimeout(() => {
+      scrollToBottom(BubbleListRef.current!);
+    }, 100);
   };
   // 点击会话
   const handleCheckSession = useCallback(
@@ -245,7 +223,6 @@ const Chat = () => {
   );
   // 创建会话
   const handleCreateSession = useCallback(async () => {
-    setIsScrollToBottom(true);
     setMessages([]);
     setIsTyping(true);
     currentConversationIdRef.current = '';
@@ -267,7 +244,6 @@ const Chat = () => {
   useEffect(() => {
     eventBus.on('checkSession', handleCheckSession);
     return () => {
-      abortRef.current();
       eventBus.off('checkSession', handleCheckSession);
     };
   }, [handleCheckSession]);
@@ -286,6 +262,8 @@ const Chat = () => {
   }, [handleSuggestionSendMessage]);
   // 获取下一轮会话建议
   const handleGetNextSuggestion = useCallback(async () => {
+    setIsTypingComplete(true);
+    setIsRequesting(false);
     if (currentMessageIdRef.current) {
       const res = await getNextSuggestion(currentMessageIdRef.current);
       if (res.result === 'success' && res.data && res.data.length > 0) {
@@ -303,12 +281,12 @@ const Chat = () => {
 
   // 滚动到底部
   const handleScrollToBottom = () => {
-    if (BubbleListRef.current) {
-      BubbleListRef.current.scrollTo({
-        top: BubbleListRef.current.scrollHeight,
+    const el = BubbleListRef.current?.nativeElement;
+    if (el) {
+      el.scrollTo({
+        top: el.scrollHeight,
         behavior: 'smooth',
       });
-
     }
   };
   return (
@@ -316,7 +294,7 @@ const Chat = () => {
       <div className="w-full h-full box-border p-[32px_8px]">
         <div className="h-full flex flex-col items-center justify-between relative">
           {messages.length > 0 ? (
-            <BubbleList ref={BubbleListRef} messages={messages} isTyping={isTyping} />
+            <BubbleList ref={BubbleListRef} messages={messages} isTyping={isTyping} isTypingComplete={isTypingComplete} />
           ) : (
             <motion.div
               initial={{ opacity: 0 }}
@@ -329,7 +307,7 @@ const Chat = () => {
           )}
           <ScrollToBottom
             onScrollToBottomClick={handleScrollToBottom}
-            visible={isScrollToBottomVisible}
+            visible={true}
           />
 
           <div className="w-full flex justify-center">
@@ -338,6 +316,7 @@ const Chat = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 1 }}>
+              <Button className="m-[16px_0]" onClick={handleGlobalSearch} icon={<SearchOutlined />}>全局搜索</Button>
               <Sender
                 className="w-[896px]! max-w-[896px] min-w-[320px]"
                 loading={isRequesting}
@@ -347,8 +326,8 @@ const Chat = () => {
                 onCancel={handleCancel}
                 onSubmit={handleSubmit}
                 disabled={!isLogin}
-                actions={false}
-                footer={senderFooter}
+                // actions={false}
+                // footer={senderFooter}
               />
             </motion.div>
           </div>

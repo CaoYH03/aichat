@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { Flex, type GetProp, Button } from "antd";
 import {
   UserOutlined,
@@ -11,17 +11,14 @@ import { Bubble, Prompts } from "@ant-design/x";
 import type { BubbleProps } from "@ant-design/x";
 import { MessageInfo } from "@ant-design/x/es/use-x-chat";
 import "@client/assets/markdown.less";
-import MarkdownCustom from "@client/components/MarkdownCustom";
+import MarkdownCustom, { MarkdownCustomRef } from "@client/components/MarkdownCustom"; // 导入类型
 import "./index.less";
 import eventBus from "@client/hooks/eventMitt";
-
-const renderMarkdown: BubbleProps["messageRender"] = (content) => {
-  return <MarkdownCustom content={content} />;
-};
 
 interface BubbleListProps {
   messages: MessageInfo<string>[];
   isTyping: boolean;
+  isTypingComplete: boolean;
 }
 
 interface BubbleItem {
@@ -29,10 +26,23 @@ interface BubbleItem {
   role: string;
   content: string | string[];
   className?: string;
+  loading?: boolean;
 }
 
-const BubbleList: React.FC<BubbleListProps> = React.forwardRef(({ messages, isTyping }, ref) => {
+const BubbleList: React.FC<BubbleListProps> = React.forwardRef(({ messages, isTyping, isTypingComplete }, ref) => {
   const [items, setItems] = useState<BubbleItem[]>([]);
+  
+  
+  // 渲染 Markdown 时创建并存储引用
+  const renderMarkdown: BubbleProps["messageRender"] = (content) => {
+    return (
+      <MarkdownCustom 
+        content={content} 
+        isTypingComplete={isTypingComplete}
+      />
+    );
+  };
+  
   const handleGetNextSuggestionSuccess = useCallback((event: unknown) => {
     const data = event as string[];
     setItems((prev) => {
@@ -47,6 +57,7 @@ const BubbleList: React.FC<BubbleListProps> = React.forwardRef(({ messages, isTy
       ];
     });
   }, []);
+  
   const setMessageLoading = useCallback(() => {
     if (messages.length === 0) return;
     const lastItem = messages[messages.length - 1];
@@ -75,12 +86,14 @@ const BubbleList: React.FC<BubbleListProps> = React.forwardRef(({ messages, isTy
       });
     }
   }, [messages]);
+  
   useEffect(() => {
     eventBus.on("getNextSuggestionSuccess", handleGetNextSuggestionSuccess);
     return () => {
       eventBus.off("getNextSuggestionSuccess", handleGetNextSuggestionSuccess);
     };
   }, [handleGetNextSuggestionSuccess]);
+  
   useEffect(() => {
     setItems(
       messages.map(({ id, message, status }) => ({
@@ -92,12 +105,14 @@ const BubbleList: React.FC<BubbleListProps> = React.forwardRef(({ messages, isTy
     );
     setMessageLoading();
   }, [messages, setMessageLoading]);
+  
   const handleItemClick = useCallback(
     (item: { data: { description: string } }) => {
       eventBus.emit("suggestionSendMessage", item.data);
     },
     []
   );
+  
   const roles: GetProp<typeof Bubble.List, "roles"> = {
     ai: {
       placement: "start",
@@ -111,7 +126,7 @@ const BubbleList: React.FC<BubbleListProps> = React.forwardRef(({ messages, isTy
           />
         ),
       },
-      typing: isTyping ? { step: 1, interval: 15,suffix: <img style={{width: '16px', height: '16px'}} src={'https://gw.alicdn.com/imgextra/i1/O1CN01qPUtnk1KwvitibrhI_!!6000000001229-54-tps-50-50.apng'} /> } : undefined,
+      typing: isTyping ? { step: 1, interval: 15 } : undefined,
       // typing: isTyping ? true : undefined,
       messageRender: renderMarkdown,
       onTypingComplete: () => {
@@ -167,7 +182,7 @@ const BubbleList: React.FC<BubbleListProps> = React.forwardRef(({ messages, isTy
   };
 
   return (
-      <Bubble.List ref={ref} className="h-full pb-[32px]" roles={roles} items={items} />
+    <Bubble.List ref={ref} className="w-full h-full pb-[32px]" roles={roles} items={items} />
   );
 });
 
