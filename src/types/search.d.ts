@@ -45,4 +45,16 @@ declare type IndustryProps = {
     tagName: string; // 行业名称
     marketSizeStr: string; // 市场规模
     growthRateStr: string; // 增长率
+    tagId: string; // 行业ID
+}
+declare type IntelligenceProps = {
+    title: string; // 标题
+    summary: string; // 摘要
+    reportId: string; // 情报ID
+}
+declare type ReportProps = {
+    title: string; // 标题
+    industryName: string; // 摘要
+    reportId: string; // 报告ID
+    pubTime: string; // 发布时间
 }
