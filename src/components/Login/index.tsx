@@ -124,30 +124,32 @@ const LoginModal: LoginModalType = ({ visible, onClose }) => {
       verificationCode: code,
       isRememberMe: true,
       source: 'pc',
-      registerWebsite: 'ai.iyiou',
+      registerWebsite: location.href,
     });
-    console.log(response);
     if (response.code === 200) {
       cookie.set('token', response.data.token);
       const userInfo = await getUserInfo();
-      if (userInfo.code === 200 && userInfo.data) { 
+      if (userInfo.code === 200) { 
         // 存在 zustand 中
-        setLoading(false);
         setUserInfo(userInfo.data);
         message.success('登录成功');
-        location.reload();
+        onClose();
+        setTimeout(() => {
+          location.reload();
+        }, 300);
         // const preConversationId = sessionStorage.getItem('preConversationId');
         // if (preConversationId) {
         //   // todo 需要将 loginModal优化成 provider, 然后通过 context 传递参数,可以使用 react-router-dom 的 useSearchParams 来传递参数
         //   location.href = `/ai-agent?conversationId=${preConversationId}`;
         //   sessionStorage.removeItem('preConversationId');
         // }
-        onClose();
       } else {
         message.error(userInfo.message);
-        setLoading(false);
       }
-    };
+    } else {
+      message.error(response.message);
+    }
+    setLoading(false);
   };
 
   const items = [

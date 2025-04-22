@@ -11,11 +11,11 @@ const request = async (url: string, options: RequestInit, isJson = true) => {
       'Auth': Cookies.get('token') || '',
     },
   });
-  const data = await response.json();
-  if (data.code === 401) {
-    LoginModal.show();
-  }
   if (isJson) {
+    const data = await response.json();
+    if (data.code === 401) {
+      LoginModal.show();
+    }
     return data;
   }
   return response;
