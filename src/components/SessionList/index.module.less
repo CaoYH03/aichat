@@ -1,0 +1,68 @@
+// 格式化滚动条
+::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    border-radius: 0px;
+    background-color: transparent;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    border-radius: 3px;
+    background-color: rgba(224, 226, 235, 0.5);
+  }
+.session-list {
+    :global(.ant-conversations-label) {
+        color: #26244c!important;
+    }
+    :global(.ant-conversations-item:hover) {
+        background-color: rgba(22, 119, 255, 0.1)!important;
+        .ant-conversations-label {
+            color: #1677ff!important;
+        }
+    }
+    :global(.ant-conversations-item-active) {
+        background-color: rgba(22, 119, 255, 0.1)!important;
+        .ant-conversations-label {
+            color: #1677ff!important;
+        }
+    }
+}
+.conversation-list-disabled {
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        right: 0;
+        background-color: transparent;
+        z-index: 1000;
+        cursor: not-allowed;
+    }
+}
+// .session-list-container {
+//     scrollbar-width: none; /* Firefox */
+//   -ms-overflow-style: none; /* IE and Edge */
+//   &::-webkit-scrollbar {
+//     display: none;
+//   }
+//   &:hover {
+//     scrollbar-width: auto; /* Firefox */
+//     -ms-overflow-style: auto; /* IE and Edge */
+//     ::-webkit-scrollbar {
+//         width: 6px;
+//         height: 6px;
+//         display: block;
+//     }
+//     ::-webkit-scrollbar-track {
+//         border-radius: 0px;
+//         background-color: rgba(224, 226, 235, 0.5);
+//     }
+//     ::-webkit-scrollbar-thumb {
+//         border-radius: 3px;
+//         background-color: rgba(224, 226, 235, 0.5);
+//     }
+//   }
+// }

@@ -47,7 +47,7 @@ declare const initGeetest: (
 const COUNT_DOWN_TIME = 60;
 const LoginModal: LoginModalType = ({ visible, onClose }) => {
   const [activeTab, setActiveTab] = useState('phone');
-  const [phone, setPhone] = useState('15545705995');
+  const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(COUNT_DOWN_TIME);

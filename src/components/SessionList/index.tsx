@@ -15,16 +15,19 @@ import { GetProp, message, Button, Input, Divider, Space } from 'antd';
 import InfiniteScroll from 'react-infinite-scroll-component';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import './index.less';
 import { useIsLogin } from '@client/hooks/useIsLogin';
 import LoginModal from '@client/components/Login';
+import styles from './index.module.less';
+import { useUserStore } from '@client/store/user';
 interface SessionItem {
   key: string;
   label: string | React.ReactNode;
 }
 
 const SessionList = ({ isFold }: { isFold: boolean }) => {
+  const { userInfo } = useUserStore();
   const [items, setItems] = useState<SessionItem[]>([]);
+  const [isTypingComplete, setIsTypingComplete] = useState(true);
   const [activeKey, setActiveKey] = useState('');
   // 添加一个新的状态存储编辑中的会话
   const editingSession = useRef({ index: -1, value: '' });
@@ -118,10 +121,11 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
 
   const fetchChatList = useCallback(async (isSelect = false, lastId = '') => {
     const response = await getChatList({
-      user: 'abc',
+      user: userInfo.userId,
       last_id: lastId,
       limit: 20,
     });
+    if(response.code === 401)  return;
     setHasMore(response.hasMore || response.has_more);
     if (lastId) {
       setItems((prev) => [
@@ -152,7 +156,7 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
       }
       setIsCreateNewSession(false);
     }
-  }, []);
+  }, [userInfo]);
   const fetchMore = useCallback(() => {
     fetchChatList(false, items[items.length - 1].key);
   }, [items, fetchChatList]);
@@ -179,6 +183,14 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
       eventBus.off('requestSessionList', handleRequestSessionList);
     };
   }, [fetchChatList]);
+  useEffect(() => {
+    eventBus.on('onIsTypingComplete', (event: unknown) => {
+      setIsTypingComplete(event as boolean);
+    });
+    return () => {
+      eventBus.off('onIsTypingComplete');
+    };
+  }, []);
 
   // 如果容器没有滚动条但还有更多数据，主动加载更多
   useEffect(() => {
@@ -231,7 +243,7 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
       const data = await renameSession(items[index].key, {
         name: editingSession.current.value,
         auto_generate: false,
-        user: 'abc',
+        user: userInfo.userId,
       });
       if (data.status === 'normal') {
         setItems(
@@ -249,8 +261,8 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
     }
   };
   const handleDeleteSession = async (key: string) => {
-    const data = await deleteSession(key, { user: 'abc' });
-    if (data.result === 'success') {
+    const data = await deleteSession(key, { user: userInfo.userId });
+    if (data.code === 200) {
       setItems(items.filter((item) => item.key !== key));
       message.success('删除成功');
       if (activeKey === key) {
@@ -262,6 +274,7 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
   };
   return (
     <motion.div
+      className={styles.sessionListContainer}
       id="scrollableDiv"
       initial={{ width: 300, opacity: 1 }}
       animate={{
@@ -274,8 +287,7 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
       }}
       style={{
         willChange: 'width',
-        // overflow: 'hidden',
-        overflowY: 'auto',
+        overflowY: !isTypingComplete ? 'hidden' : 'auto',
         height: '100%',
         overflowX: 'hidden',
         transform: 'translateZ(0)',
@@ -293,9 +305,9 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
             }
     
             endMessage={
-              <Divider plain style={{ color: '#ccc' }}>
-                没有更多了
-              </Divider>
+              items.length > 0 &&(<Divider plain style={{ color: '#ccc' }}>
+              没有更多了
+            </Divider>)
             }
             scrollableTarget="scrollableDiv">
             <div className="bg-[#fff] p-[16px_16px_0_16px]">
@@ -304,7 +316,7 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
                   disabled={!isLogin}
                   onClick={handleCreateSession}
                   type="primary"
-                  className="w-full bg-[#615ced]! text-[#fff]">
+                  className="w-full text-[#fff]">
                   新建会话
                 </Button>
               </div>
@@ -315,15 +327,15 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
                 onActiveChange={handleActiveChange}
                 menu={menuConfig}
                 groupable={groupable  }
-                className="session-list"
+                className={`${styles.sessionList} ${!isTypingComplete ? styles.conversationListDisabled : ''}`}
               />
             </div>
           </InfiniteScroll>
           ) : (
             <div className='h-full p-[16px_16px_0_16px] flex flex-col items-center justify-center gap-[10px]'>
-              <h2 className='text-[24px] font-bold text-[#333]'>   登录领权益
+              <h2 className='text-[18px] font-bold text-[#333]'>   登录领权益
               </h2>
-              <h3 className='text-[16px] text-[#666] text-center'> 领音视频时长、全文翻译数、存储空间等多项权益 </h3>
+              <h3 className='text-[14px] text-[#666] text-center'> 领音视频时长、全文翻译数、存储空间等多项权益 </h3>
               <Button type='primary' onClick={() => LoginModal.show()}>立即登录</Button>
             </div>
           )

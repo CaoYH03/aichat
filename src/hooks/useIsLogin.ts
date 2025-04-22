@@ -1,10 +1,11 @@
 // 判断是否登录
 import { useMemo } from 'react';
+import { useUserStore } from '@client/store/user';
 
 
 export const useIsLogin = () => {
-  const userInfo = localStorage.getItem('userInfo');
+  const userInfo = useUserStore((state) => state.userInfo);
   return useMemo(() => {
-    return [!!userInfo];
-  }, [userInfo]);
+    return [!!userInfo?.userId];
+  }, [userInfo?.userId]);
 };

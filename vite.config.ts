@@ -34,16 +34,11 @@ export default defineConfig({
     port: 3000, // 指定端口，可选
     // proxy: {
     //   '/api': {
-    //     target: 'https://dev-apidata.iyiou.com/spa/llm',
-    //     // target: 'https://agi.iyiou.com/v1',
+    //     // target: 'https://dev-apidata.iyiou.com/spa/llm',
+    //     target: 'https://agi.iyiou.com/v1',
     //     changeOrigin: true,
     //     rewrite: (path) => path.replace(/^\/api/, '')
     //   },
-    //   '/spa': {
-    //     target: 'https://dev-apidata.iyiou.com/spa/',
-    //     changeOrigin: true,
-    //     rewrite: (path) => path.replace(/^\/spa/, '')
-    //   }
     // }
   },
   css: {

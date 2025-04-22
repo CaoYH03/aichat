@@ -1,31 +1,11 @@
 // 侧边栏
-import { useMemo } from 'react';
-import { HomeFilled } from '@ant-design/icons';
-import { Popover } from 'antd';
+import { HomeFilled, LoginOutlined } from '@ant-design/icons';
 import LoginModal from '@client/components/Login';
-import { useUserStore } from '@client/store/user';
+import { useIsLogin } from '@client/hooks/useIsLogin';
+import { div } from 'framer-motion/client';
 
 const SideBar = () => {
-  const userInfo = useUserStore((state) => state.userInfo);
-  const content = useMemo(() => {
-    console.log(userInfo);
-    return (
-      <div className="w-[400px] h-[200px] bg-[#fff]">
-        <div>
-          <div>
-            <img src={userInfo?.position} alt="" />
-          </div>
-          <div>
-            <div>{userInfo?.user_name}</div>
-            <div>{userInfo?.email}</div>
-          </div>
-        </div>
-      </div>
-    );
-  }, [userInfo]);
-  const isLogin = useMemo(() => {
-    return userInfo?.userId;
-  }, [userInfo]);
+  const [isLogin] = useIsLogin();
   const handleLogin = () => {
     if (!isLogin) {
       LoginModal.show();
@@ -38,13 +18,17 @@ const SideBar = () => {
         src="https://diting-hetu.iyiou.com/rprQtZu6HSGxmTmYtwsI.png"
         alt=""
       />
-      <Popover content={isLogin ? content : ''} placement="rightTop">
+      {
+      isLogin ?
         <HomeFilled
-          onClick={handleLogin}
           className="align-self-end cursor-pointer"
-          style={{ fontSize: '32px', color: '#fff' }}
+          style={{ fontSize: '26px', color: '#fff' }}
         />
-      </Popover>
+        :
+        <div className="bg-[rgba(255,255,255,0.15)] rounded-[50%] flex justify-center items-center p-[10px] cursor-pointer" onClick={handleLogin}>
+          <span className="text-[14px] text-[#fff] leading-[26px]">登录</span>
+        </div>
+      }
     </div>
   );
 };

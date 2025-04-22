@@ -1,19 +1,21 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
-import { Flex, type GetProp, Button } from "antd";
+import React, { useEffect, useState, useCallback } from "react";
+import { Flex, type GetProp, Button, Tooltip, notification } from "antd";
 import {
   UserOutlined,
   FireOutlined,
-  SyncOutlined,
-  SmileOutlined,
-  FrownOutlined,
+  FormOutlined,
+  // SmileOutlined,
+  // FrownOutlined,
 } from "@ant-design/icons";
 import { Bubble, Prompts } from "@ant-design/x";
 import type { BubbleProps } from "@ant-design/x";
 import { MessageInfo } from "@ant-design/x/es/use-x-chat";
 import "@client/assets/markdown.less";
-import MarkdownCustom, { MarkdownCustomRef } from "@client/components/MarkdownCustom"; // 导入类型
+import MarkdownCustom from "@client/components/MarkdownCustom"; // 导入类型
 import "./index.less";
 import eventBus from "@client/hooks/eventMitt";
+import { insertBrief } from "@client/api";
+const host = import.meta.env.VITE_HOST;
 
 interface BubbleListProps {
   messages: MessageInfo<string>[];
@@ -31,12 +33,12 @@ interface BubbleItem {
 
 const BubbleList: React.FC<BubbleListProps> = React.forwardRef(({ messages, isTyping, isTypingComplete }, ref) => {
   const [items, setItems] = useState<BubbleItem[]>([]);
-  
+
   
   // 渲染 Markdown 时创建并存储引用
   const renderMarkdown: BubbleProps["messageRender"] = (content) => {
     return (
-      <MarkdownCustom 
+      <MarkdownCustom
         content={content} 
         isTypingComplete={isTypingComplete}
       />
@@ -93,18 +95,50 @@ const BubbleList: React.FC<BubbleListProps> = React.forwardRef(({ messages, isTy
       eventBus.off("getNextSuggestionSuccess", handleGetNextSuggestionSuccess);
     };
   }, [handleGetNextSuggestionSuccess]);
+  const handleInsertBrief = useCallback(async(index: number, bubbleRef: string) => {
+    const markdownContainerEl = document.getElementById(bubbleRef);
+    const markdownContent = markdownContainerEl?.querySelectorAll('.eoai-markdown');
+   const res = await insertBrief({
+      title: messages[index - 1].message,
+      content: markdownContent![0].innerHTML || "<p>同步失败！</p>",
+    });
+    if (res.code === 200) {
+      notification.success({
+        message: "同步成功",
+        placement: "top",
+        description: (
+          <div>
+            <p>简报已经同步到本地<a href={`https://${host}.iyiou.com/work/intelligence/briefing/detail/${res.data.id || '123'}`} target="_blank" onClick={()=> {
+              notification.destroy();
+            }}>【立即查看】</a></p>
+          </div>
+        ),
+      });
+    }
+  }, [messages]);
   
   useEffect(() => {
     setItems(
-      messages.map(({ id, message, status }) => ({
-        key: id,
-        role: status === "local" ? "local" : "ai",
-        content: message,
-        className: "bubble-item",
-      }))
+      messages.map(({ id, message, status }, index) => {
+        const bubbleRef = Math.random().toString(32).slice(2);
+        return {
+          key: id,
+          role: status === "local" ? "local" : "ai",
+          content: message,
+          className: "bubble-item",
+          id: bubbleRef,
+          footer: status !== "local" && (
+          <Flex>
+            <Tooltip title="一键插入简报">
+              <Button onClick={() => handleInsertBrief(index, bubbleRef)} size="small" type="text" icon={<FormOutlined />} />
+            </Tooltip>
+          </Flex>
+        )
+      }
+      })  
     );
     setMessageLoading();
-  }, [messages, setMessageLoading]);
+  }, [messages, setMessageLoading, handleInsertBrief]);
   
   const handleItemClick = useCallback(
     (item: { data: { description: string } }) => {
@@ -120,7 +154,7 @@ const BubbleList: React.FC<BubbleListProps> = React.forwardRef(({ messages, isTy
         icon: (
           <img
             src={
-              "https://img.alicdn.com/imgextra/i1/O1CN012NfNOj1Tjx7VTw6rg_!!6000000002419-2-tps-72-72.png"
+              "https://diting-hetu.iyiou.com/TQYNHQEh0ZuqHAAo9FTc.png"
             }
             alt="avatar"
           />
@@ -135,18 +169,15 @@ const BubbleList: React.FC<BubbleListProps> = React.forwardRef(({ messages, isTy
           eventBus.emit("onTypingComplete");
         }
       },
-      footer: (
-        <Flex>
-          <Button
-            size="small"
-            type="text"
-            icon={<SyncOutlined />}
-            style={{ marginInlineEnd: "auto" }}
-          />
-          <Button size="small" type="text" icon={<SmileOutlined />} />
-          <Button size="small" type="text" icon={<FrownOutlined />} />
-        </Flex>
-      ),
+      // footer: (
+      //   <Flex>
+      //     <Tooltip title="一键插入简报">
+      //       <Button id={bubbleRef.current} onClick={handleInsertBrief} size="small" type="text" icon={<FormOutlined />} />
+      //     </Tooltip>
+      //     {/* <Button size="small" type="text" icon={<SmileOutlined />} />
+      //     <Button size="small" type="text" icon={<FrownOutlined />} /> */}
+      //   </Flex>
+      // ),
     },
     local: {
       placement: "end",

@@ -2,9 +2,9 @@ import BubbleList from '@client/components/Bubble';
 import Prompt from '@client/components/Prompt';
 import ScrollToBottom from '@client/components/ScrollToBottom';
 import { Sender } from '@ant-design/x';
-import { Button } from 'antd';
-import { SearchOutlined } from '@ant-design/icons';
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { Button, message as messageAntd, Spin } from 'antd';
+import { SearchOutlined, LoadingOutlined } from '@ant-design/icons';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useXAgent, useXChat, XStream } from '@ant-design/x';
 import { motion } from 'framer-motion';
 import {
@@ -18,7 +18,8 @@ import eventBus from '@client/hooks/eventMitt';
 import type { MessageInfo, MessageStatus } from '@ant-design/x/es/use-x-chat';
 import { addSearchParams } from '@client/utils';
 import { useIsLogin } from '@client/hooks/useIsLogin';
-import { h } from 'node_modules/framer-motion/dist/types.d-B50aGbjN';
+import { useUserStore } from '@client/store/user';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 
 interface ChatMessage {
   query: string;
@@ -63,16 +64,20 @@ const Chat = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [isRequesting, setIsRequesting] = useState(false);
   const [isTypingComplete, setIsTypingComplete] = useState(true);
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const id = searchParams.get('conversationId');
+  const [isMessageLoading, setIsMessageLoading] = useState(id ? true : false);
   const abortRef = useRef(() => {});
   const currentTaskIdRef = useRef('');
   const currentConversationIdRef = useRef('');
   const currentMessageIdRef = useRef('');
   const BubbleListRef = useRef<HTMLDivElement | null>(null);
   const GlobalSearchStatusRef = useRef(true);
+  const { userInfo } = useUserStore();
   useEffect(() => {
     eventBus.on('globalSearch', (event: unknown) => {
       const status = event as boolean;
-      console.log('status', status);
       if(GlobalSearchStatusRef.current === status) {
         return;
       }
@@ -91,9 +96,15 @@ const Chat = () => {
         query: message,
         response_mode: 'streaming',
         conversation_id: currentConversationIdRef.current,
-        user: 'abc',
+        user: userInfo.userId,
         files: [],
       });
+      if (response.status !== 200) {
+        messageAntd.error('请求失败');
+        setIsRequesting(false);
+        eventBus.emit('onIsTypingComplete', true);
+        return;
+      }
       if (!response.body) {
         throw new Error('No response body');
       }
@@ -163,10 +174,28 @@ const Chat = () => {
   } = useXChat({
     agent,
   });
+  const chatContent = useMemo(() => {
+    if(isMessageLoading) {
+      return <Spin indicator={<LoadingOutlined spin  />} size="large" style={{ top: '20%', }} />
+    }
+    if(messages.length > 0) {
+      return (
+        <BubbleList ref={BubbleListRef} messages={messages} isTyping={isTyping} isTypingComplete={isTypingComplete} />
+      );
+    }
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 1 }}
+        className="w-full h-full flex justify-center items-center">
+        <Prompt />
+      </motion.div>
+    )
+  }, [messages, isTyping, isTypingComplete, isMessageLoading ]);
   const handleGlobalSearch = () => {
-    console.log('handleGlobalSearch');
     GlobalSearchStatusRef.current = !GlobalSearchStatusRef.current;
-    console.log('GlobalSearchStatusRef.current', GlobalSearchStatusRef.current);
     eventBus.emit('globalSearch', GlobalSearchStatusRef.current);
   }
     // 创建会话
@@ -174,33 +203,29 @@ const Chat = () => {
       setMessages([]);
       setIsTyping(true);
       currentConversationIdRef.current = '';
-      // 清空 URL 中的 conversationId 参数
-      const url = new URL(window.location.href);
-      url.searchParams.delete('conversationId');
-      window.history.replaceState({}, '', url.toString());
-    }, [setMessages]);
+      navigate('/');
+    }, [setMessages, navigate]);
   // 初始化请求会话
   useEffect(() => {
     const initSession = async () => {
-      const url = new URL(window.location.href);
-      const id = url.searchParams.get('conversationId');
       if (!isLogin) {
         sessionStorage.setItem('preConversationId', id || '');
+        setIsMessageLoading(false);
         return;
       }
-      if (id) {
+      if(!id) return;
         currentConversationIdRef.current = id;
-        const { data } = await checkSession(id);
+        const { data } = await checkSession(id, userInfo.userId);
         if (data && data.length > 0) {
           setMessages(formatMessageList(data));
           setIsTyping(false);
         } else {
           handleCreateSession();
         }
-      }
+      setIsMessageLoading(false);
     };
     initSession();
-  }, [setMessages, isLogin, handleCreateSession]);
+  }, [setMessages, isLogin, handleCreateSession, userInfo.userId, id]);
   // 输入框内容变化
   const handleChange = useCallback((e: string) => {
     setContent(e);
@@ -209,16 +234,16 @@ const Chat = () => {
   const handleCancel = () => {
     abortRef.current();
     stopChat(currentTaskIdRef.current, {
-      user: 'abc',
+      user: userInfo.userId,
     });
   };
   // 点击发送
   const handleSubmit = (nextContent: string) => {
-    console.log('nextContent', nextContent);
     setIsTyping(true);
     onRequest(nextContent);
     setIsRequesting(true);
     setIsTypingComplete(false);
+    eventBus.emit('onIsTypingComplete', false);
     setContent('')
     setTimeout(() => {
       scrollToBottom(BubbleListRef.current!);
@@ -227,17 +252,26 @@ const Chat = () => {
   // 点击会话
   const handleCheckSession = useCallback(
     async (event: unknown) => {
+      setIsMessageLoading(true);
       const sessionId = event as string;
-      const { data } = await checkSession(sessionId);
-      setMessages(formatMessageList(data));
-      currentConversationIdRef.current = sessionId;
-      setIsTyping(false);
+      const { data } = await checkSession(sessionId, userInfo.userId);
+      if(data && data.length > 0) {
+        setMessages(formatMessageList(data));
+        currentConversationIdRef.current = sessionId;
+        setIsMessageLoading(false);
+        setIsTyping(false);
+      } else {
+        setIsMessageLoading(false);
+        handleCreateSession();
+      }
     },
-    [setMessages]
+    [setMessages, userInfo.userId, handleCreateSession]
   );
   // 点击会话建议
   const handleSuggestionSendMessage = useCallback(
     (event: unknown) => {
+      setIsTypingComplete(false);
+      eventBus.emit('onIsTypingComplete', false);
       const data = event as { description: string };
       onRequest(data.description);
       
@@ -267,14 +301,15 @@ const Chat = () => {
   // 获取下一轮会话建议
   const handleGetNextSuggestion = useCallback(async () => {
     setIsTypingComplete(true);
+    eventBus.emit('onIsTypingComplete', true);
     setIsRequesting(false);
     if (currentMessageIdRef.current) {
-      const res = await getNextSuggestion(currentMessageIdRef.current);
+      const res = await getNextSuggestion(currentMessageIdRef.current, userInfo.userId);
       if (res.result === 'success' && res.data && res.data.length > 0) {
         eventBus.emit('getNextSuggestionSuccess', res.data);
       }
     }
-  }, []);
+  }, [userInfo.userId]);
   // 监听获取下一轮会话建议
   useEffect(() => {
     eventBus.on('onTypingComplete', handleGetNextSuggestion);
@@ -297,18 +332,7 @@ const Chat = () => {
     <>
       <div className="w-full h-full box-border p-[32px_8px]">
         <div className="h-full flex flex-col items-center justify-between relative">
-          {messages.length > 0 ? (
-            <BubbleList ref={BubbleListRef} messages={messages} isTyping={isTyping} isTypingComplete={isTypingComplete} />
-          ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 1 }}
-              className="w-full h-full flex justify-center items-center">
-              <Prompt />
-            </motion.div>
-          )}
+          {chatContent}
           <ScrollToBottom
             onScrollToBottomClick={handleScrollToBottom}
             visible={messages.length > 0}

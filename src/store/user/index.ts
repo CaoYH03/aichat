@@ -11,18 +11,15 @@ interface UserInfo {
 }
 
 interface UserStore {
-  userInfo: UserInfo | null;
+  userInfo: UserInfo | { userId: string };
   setUserInfo: (userInfo: UserInfo) => void;
 }
 
 export const useUserStore = create<UserStore>((set) => ({
-  userInfo: null,
+  userInfo: {
+    userId: '',
+  },
   setUserInfo: (userInfo: UserInfo) => {
     set({ userInfo });
-    if (userInfo.userId) {
-      localStorage.setItem('userInfo', JSON.stringify(userInfo));
-    } else {
-      localStorage.removeItem('userInfo');
-    }
   },
 }));

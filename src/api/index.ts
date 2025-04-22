@@ -1,11 +1,22 @@
 import request from "@client/request";
-const token = 'app-jO8oLjoCURbE2SjOz0dZkn31';
+import Cookies from "js-cookie";
+interface BriefingCreateParams {
+  title: string;
+  content: string;
+  token?: string;
+  settings?: {
+    companyColumn: string[];
+    intelligenceColumn: string[];
+    intelligenceTemplate: number;
+  };
+  subjectType?: number;
+  briefNewsRelation?: string[];
+}
 export const chatMessage = async (data: unknown) => {
   return request('/spa/llm/chat-messages', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(data),
   }, false);
@@ -16,7 +27,6 @@ export const stopChat = async (task_id: string, data: unknown) => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(data),
   });
@@ -31,29 +41,26 @@ export const getChatList = async (params: {
     method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
       },
     }
   );
 };
 // 获取会话详情
-export const checkSession = async (conversation_id: string) => {
-  return request(`/spa/llm/messages?user=abc&conversation_id=${conversation_id}`, {
+export const checkSession = async (conversation_id: string, user: string) => {
+  return request(`/spa/llm/messages?user=${user}&conversation_id=${conversation_id}`, {
     method: 'GET',
     headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
       },
     }
   );
 };
 // 获取下一轮会话建议
-export const getNextSuggestion = async (message_id: string) => {
-  return request(`/spa/llm/messages/${message_id}/suggested?user=abc`, {
+export const getNextSuggestion = async (message_id: string, user: string) => {
+  return request(`/spa/llm/messages/${message_id}/suggested?user=${user}`, {
     method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
       },
     }
   );
@@ -67,7 +74,6 @@ export const renameSession = async (
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(data),
   });
@@ -81,8 +87,43 @@ export const deleteSession = async (
     method: 'DELETE',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(data),
+  });
+};
+// 插入简报
+export const insertBrief = async (data: BriefingCreateParams) => {
+  return request(`/spa/briefing/create`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      ...data,
+      settings: {
+        companyColumn: [
+          "一句话简介",
+          "企业介绍",
+          "投资方",
+          "估值情况",
+          "最新融资",
+          "最新专利",
+          "最新招投标"
+        ],
+        intelligenceColumn: [
+          "情报标题",
+          "情报摘要",
+          "发布时间",
+          "情报新闻源",
+          "情报类型",
+          "情报关联行业",
+          "情报关联主体"
+        ],
+        intelligenceTemplate: 0,
+      },
+      subjectType: 1,
+      briefNewsRelation: [],
+      token: Cookies.get("token") || "",
+    }),
   });
 };

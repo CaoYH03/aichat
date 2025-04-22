@@ -164,14 +164,14 @@ const MarkdownCustom = forwardRef<MarkdownCustomRef, MarkdownCustomProps>(
     
     return (
       <Typography>
-        <div className="tongyi-markdown" ref={markdownRef}>
+        <div className="eoai-markdown" ref={markdownRef}>
           <ReactMarkdown
             rehypePlugins={[rehypeRaw]}
             remarkPlugins={[remarkGfm, remarkBreaks]}
             components={{
               a: MarkdownWithLink as any,
               img: ({ src, alt }) => {
-                return <div className="tongyi-markdown-img">
+                return <div className="eoai-markdown-img">
                   <img 
                     src={src || 'https://api.ditings.iyiou.com/assets/admin/qi.png'} 
                     alt={alt} 

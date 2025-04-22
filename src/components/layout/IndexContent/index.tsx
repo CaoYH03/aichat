@@ -29,9 +29,9 @@ const IndexContent = () => {
       <Flex className="h-full">
         <SessionList isFold={isSessionFold} />
         <Tooltip title={isSessionFold ? '展开对话记录' : '收起对话记录'}>
-          <span
+          <div
             onClick={handFold}
-            className="w-[10px] h-[28px] relative left-[12px] self-center cursor-pointer unfold-icon">
+            className="w-[28px] h-[28px] relative left-[6px] self-center cursor-pointer unfold-icon">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="#c8cad9"
@@ -50,7 +50,7 @@ const IndexContent = () => {
                 </g>
               </g>
             </svg>
-          </span>
+          </div>
         </Tooltip>
         <Chat />
         <GlobalSearch isFold={isGlobalSearchFold} />
