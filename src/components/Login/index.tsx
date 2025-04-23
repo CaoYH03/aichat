@@ -193,13 +193,6 @@ const LoginModal: LoginModalType = ({ visible, onClose }) => {
             onClick={handleLogin}>
             登录
           </Button>
-          <div className="mt-6 text-center">
-            <div className="text-gray-400 mb-4">其他登录方式</div>
-            <div className="flex justify-center gap-6">
-              <QqOutlined className="text-2xl text-gray-500 hover:text-indigo-600 cursor-pointer" />
-              <WechatOutlined className="text-2xl text-gray-500 hover:text-indigo-600 cursor-pointer" />
-            </div>
-          </div>
         </div>
       ),
     },

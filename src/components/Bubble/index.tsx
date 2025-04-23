@@ -121,6 +121,7 @@ const BubbleList: React.FC<BubbleListProps> = React.forwardRef(({ messages, isTy
           </div>
         ),
       });
+      return;
     }
     const markdownContainerEl = document.getElementById(bubbleRef);
     const markdownContent = markdownContainerEl?.querySelectorAll('.eoai-markdown');

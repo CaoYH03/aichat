@@ -173,7 +173,7 @@ const GlobalSearch = ({ isFold }: { isFold: boolean }) => {
     <motion.div
       initial={{ width: 0, opacity: 1 }}
       animate={{
-        width: isFold ? 0 : 400,
+        width: isFold ? 0 : 370,
         opacity: 1,
       }}
       transition={{
@@ -189,7 +189,7 @@ const GlobalSearch = ({ isFold }: { isFold: boolean }) => {
         backgroundColor: "#fff",
       }}
     >
-      <div className="p-[0_20px_20px] w-[300px]">
+      <div className="p-[0_20px_20px] min-w-[250px]">
         <div className="sticky top-0 bg-[#fff] z-10 pt-[20px]">
           <Input.Search
             placeholder="搜索"
