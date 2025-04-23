@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { Flex, type GetProp, Button, Tooltip, notification } from "antd";
+import { Flex, type GetProp, Button, Tooltip, notification, message } from "antd";
 import {
   UserOutlined,
   FireOutlined,
@@ -36,7 +36,6 @@ interface BubbleItem {
 const BubbleList: React.FC<BubbleListProps> = React.forwardRef(({ messages, isTyping, isTypingComplete }, ref) => {
   const [items, setItems] = useState<BubbleItem[]>([]);
   const userInfo = useUserStore((state) => state.userInfo);
-  
   // 渲染 Markdown 时创建并存储引用
   const renderMarkdown: BubbleProps["messageRender"] = (content) => {
     return (
@@ -97,7 +96,12 @@ const BubbleList: React.FC<BubbleListProps> = React.forwardRef(({ messages, isTy
       eventBus.off("getNextSuggestionSuccess", handleGetNextSuggestionSuccess);
     };
   }, [handleGetNextSuggestionSuccess]);
-  const handleInsertBrief = useCallback(async(index: number, bubbleRef: string) => {
+  const handleInsertBrief = useCallback(async(index: number, bubbleRef: string, disable = false) => {
+    if(disable){
+
+      message.warning("请耐心等待AI完成输出，再进行同步哦");
+      return;
+    }
     if(userInfo.level < level) {
       notification.warning({
         message: "权限不足",
@@ -130,7 +134,7 @@ const BubbleList: React.FC<BubbleListProps> = React.forwardRef(({ messages, isTy
         ),
       });
     }
-  }, [messages]);
+  }, [messages, userInfo.level]);
   
   useEffect(() => {
     setItems(
@@ -143,17 +147,20 @@ const BubbleList: React.FC<BubbleListProps> = React.forwardRef(({ messages, isTy
           className: styles.bubbleItem,
           id: bubbleRef,
           footer: status !== "local" && (
-          <Flex>
-            <Tooltip title="一键插入简报">
-              <Button onClick={() => handleInsertBrief(index, bubbleRef)} size="small" type="text" icon={<FormOutlined />} />
-            </Tooltip>
-          </Flex>
-        )
+              (
+                <Flex>
+                  <Tooltip title="一键插入简报">
+                    <Button onClick={() => handleInsertBrief(index, bubbleRef, (index === messages.length - 1) && !isTypingComplete)} size="small" type="text" icon={<FormOutlined />} />
+                  </Tooltip>
+                </Flex>
+              )
+            )
+          
       }
       })  
     );
     setMessageLoading();
-  }, [messages, setMessageLoading, handleInsertBrief]);
+  }, [messages, setMessageLoading, handleInsertBrief, isTypingComplete]);
   
   const handleItemClick = useCallback(
     (item: { data: { description: string } }) => {
@@ -175,7 +182,7 @@ const BubbleList: React.FC<BubbleListProps> = React.forwardRef(({ messages, isTy
           />
         ),
       },
-      typing: isTyping ? { step: 1, interval: 15 } : undefined,
+      typing: isTyping ? { step: 3, interval: 30 } : undefined,
       // typing: isTyping ? true : undefined,
       messageRender: renderMarkdown,
       onTypingComplete: () => {
@@ -184,15 +191,7 @@ const BubbleList: React.FC<BubbleListProps> = React.forwardRef(({ messages, isTy
           eventBus.emit("onTypingComplete");
         }
       },
-      // footer: (
-      //   <Flex>
-      //     <Tooltip title="一键插入简报">
-      //       <Button id={bubbleRef.current} onClick={handleInsertBrief} size="small" type="text" icon={<FormOutlined />} />
-      //     </Tooltip>
-      //     {/* <Button size="small" type="text" icon={<SmileOutlined />} />
-      //     <Button size="small" type="text" icon={<FrownOutlined />} /> */}
-      //   </Flex>
-      // ),
+
     },
     local: {
       placement: "end",
