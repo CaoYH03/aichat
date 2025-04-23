@@ -1,8 +1,7 @@
 // 侧边栏
-import { HomeFilled, LoginOutlined } from '@ant-design/icons';
+import { HomeFilled } from '@ant-design/icons';
 import LoginModal from '@client/components/Login';
 import { useIsLogin } from '@client/hooks/useIsLogin';
-import { div } from 'framer-motion/client';
 
 const SideBar = () => {
   const [isLogin] = useIsLogin();
@@ -14,8 +13,8 @@ const SideBar = () => {
   return (
     <div className="w-[72px] shrink-0 h-screen flex flex-col justify-between items-center p-[16px_0]">
       <img
-        className="w-[calc(100%-16px)]"
-        src="https://diting-hetu.iyiou.com/rprQtZu6HSGxmTmYtwsI.png"
+        className="w-[calc(100%-32px)]"
+        src="https://diting-hetu.iyiou.com/WQqzPvJ9yjWMlsaZDFbo.png"
         alt=""
       />
       {

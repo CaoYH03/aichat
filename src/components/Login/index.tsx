@@ -134,9 +134,6 @@ const LoginModal: LoginModalType = ({ visible, onClose }) => {
         setUserInfo(userInfo.data);
         message.success('登录成功');
         onClose();
-        setTimeout(() => {
-          location.reload();
-        }, 300);
         // const preConversationId = sessionStorage.getItem('preConversationId');
         // if (preConversationId) {
         //   // todo 需要将 loginModal优化成 provider, 然后通过 context 传递参数,可以使用 react-router-dom 的 useSearchParams 来传递参数

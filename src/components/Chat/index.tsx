@@ -2,7 +2,7 @@ import BubbleList from '@client/components/Bubble';
 import Prompt from '@client/components/Prompt';
 import ScrollToBottom from '@client/components/ScrollToBottom';
 import { Sender } from '@ant-design/x';
-import { Button, message as messageAntd, Spin } from 'antd';
+import { Button, notification, Spin } from 'antd';
 import { SearchOutlined, LoadingOutlined } from '@ant-design/icons';
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useXAgent, useXChat, XStream } from '@ant-design/x';
@@ -20,7 +20,7 @@ import { addSearchParams } from '@client/utils';
 import { useIsLogin } from '@client/hooks/useIsLogin';
 import { useUserStore } from '@client/store/user';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-
+import LoginModal from '@client/components/Login';
 interface ChatMessage {
   query: string;
   agentThoughts: Array<{ thought: string; observation: string; tool: string }>;
@@ -73,20 +73,7 @@ const Chat = () => {
   const currentConversationIdRef = useRef('');
   const currentMessageIdRef = useRef('');
   const BubbleListRef = useRef<HTMLDivElement | null>(null);
-  const GlobalSearchStatusRef = useRef(true);
   const { userInfo } = useUserStore();
-  useEffect(() => {
-    eventBus.on('globalSearch', (event: unknown) => {
-      const status = event as boolean;
-      if(GlobalSearchStatusRef.current === status) {
-        return;
-      }
-      GlobalSearchStatusRef.current = status;
-    });
-    return () => {
-      eventBus.off('globalSearch');
-    };
-  }, []);
   const [isLogin] = useIsLogin();
   // 请求代理
   const [agent] = useXAgent({
@@ -99,8 +86,32 @@ const Chat = () => {
         user: userInfo.userId,
         files: [],
       });
+      if (response.status === 401) {
+        setMessages((prev ) => [...prev, {
+          id: `msg_${Math.random().toString()}`,
+          message: '登录过期，请重新登录',
+          status: 'success' as MessageStatus,
+        }]);
+        LoginModal.show();
+        return;
+      }
       if (response.status !== 200) {
-        messageAntd.error('请求失败');
+        setMessages((prev ) => [...prev, {
+          id: `msg_${Math.random().toString()}`,
+          message: '服务器异常，请稍后再试',
+          status: 'success' as MessageStatus,
+        }]);
+        notification.error({
+          message: '服务器异常',
+          description: (
+            <div>
+              <p>请检查网络连接或稍后再试</p>
+              <a href="javascript:void(0)" onClick={() => {
+                window.location.reload();
+              }}>刷新页面</a>
+            </div>
+          ),
+        });
         setIsRequesting(false);
         eventBus.emit('onIsTypingComplete', true);
         return;
@@ -146,12 +157,6 @@ const Chat = () => {
               if (parsedChunk.message_id !== currentMessageIdRef.current) {
                 currentMessageIdRef.current = parsedChunk.message_id;
               }
-              // if (parsedChunk.event.includes('agent_thought')) {
-              //   // 将agent_thought 的 thought 添加到content中
-              //   content += `<div class="agent-thought">${
-              //     parsedChunk.observation || ''
-              //   }</div>`;
-              // }
               const newContent = parsedChunk.answer || '';
               content += newContent;
               onUpdate(content);
@@ -174,6 +179,13 @@ const Chat = () => {
   } = useXChat({
     agent,
   });
+  const startChat = useCallback((content: string) => {
+    setIsTyping(true);
+    onRequest(content);
+    setIsRequesting(true);
+    setIsTypingComplete(false);
+    eventBus.emit('onIsTypingComplete', false);
+  }, [onRequest, setIsTyping, setIsRequesting, setIsTypingComplete]);
   const chatContent = useMemo(() => {
     if(isMessageLoading) {
       return <Spin indicator={<LoadingOutlined spin  />} size="large" style={{ top: '20%', }} />
@@ -190,13 +202,12 @@ const Chat = () => {
         exit={{ opacity: 0 }}
         transition={{ duration: 1 }}
         className="w-full h-full flex justify-center items-center">
-        <Prompt />
+        <Prompt handleClickRecommendItem={startChat} />
       </motion.div>
     )
-  }, [messages, isTyping, isTypingComplete, isMessageLoading ]);
+  }, [startChat, isMessageLoading, messages, isTyping, isTypingComplete]);
   const handleGlobalSearch = () => {
-    GlobalSearchStatusRef.current = !GlobalSearchStatusRef.current;
-    eventBus.emit('globalSearch', GlobalSearchStatusRef.current);
+    eventBus.emit('globalSearch');
   }
     // 创建会话
     const handleCreateSession = useCallback(async () => {
@@ -239,11 +250,7 @@ const Chat = () => {
   };
   // 点击发送
   const handleSubmit = (nextContent: string) => {
-    setIsTyping(true);
-    onRequest(nextContent);
-    setIsRequesting(true);
-    setIsTypingComplete(false);
-    eventBus.emit('onIsTypingComplete', false);
+    startChat(nextContent)
     setContent('')
     setTimeout(() => {
       scrollToBottom(BubbleListRef.current!);
@@ -258,25 +265,22 @@ const Chat = () => {
       if(data && data.length > 0) {
         setMessages(formatMessageList(data));
         currentConversationIdRef.current = sessionId;
-        setIsMessageLoading(false);
         setIsTyping(false);
       } else {
-        setIsMessageLoading(false);
-        handleCreateSession();
+        setMessages([]);
       }
+      setIsMessageLoading(false);
     },
-    [setMessages, userInfo.userId, handleCreateSession]
+    [setMessages, userInfo.userId]
   );
   // 点击会话建议
   const handleSuggestionSendMessage = useCallback(
     (event: unknown) => {
-      setIsTypingComplete(false);
-      eventBus.emit('onIsTypingComplete', false);
       const data = event as { description: string };
-      onRequest(data.description);
+      startChat(data.description)
       
     },
-    [onRequest]
+    [startChat]
   );
   // 监听点击会话
   useEffect(() => {
@@ -303,13 +307,16 @@ const Chat = () => {
     setIsTypingComplete(true);
     eventBus.emit('onIsTypingComplete', true);
     setIsRequesting(false);
+    if(!isLogin) {
+      return;
+    }
     if (currentMessageIdRef.current) {
       const res = await getNextSuggestion(currentMessageIdRef.current, userInfo.userId);
       if (res.result === 'success' && res.data && res.data.length > 0) {
         eventBus.emit('getNextSuggestionSuccess', res.data);
       }
     }
-  }, [userInfo.userId]);
+  }, [userInfo.userId, isLogin]);
   // 监听获取下一轮会话建议
   useEffect(() => {
     eventBus.on('onTypingComplete', handleGetNextSuggestion);
@@ -344,7 +351,7 @@ const Chat = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 1 }}>
-              <Button type='primary' className="m-[16px_0]" onClick={handleGlobalSearch} icon={<SearchOutlined />}>全局搜索</Button>
+              <Button className="m-[10px_0]" onClick={handleGlobalSearch} icon={<SearchOutlined />}>精确搜索</Button>
               <Sender
                 className="w-[896px]! max-w-[896px] min-w-[320px]"
                 loading={isRequesting}
@@ -354,8 +361,6 @@ const Chat = () => {
                 onCancel={handleCancel}
                 onSubmit={handleSubmit}
                 disabled={!isLogin}
-                // actions={false}
-                // footer={senderFooter}
               />
             </motion.div>
           </div>

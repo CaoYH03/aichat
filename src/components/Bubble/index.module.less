@@ -25,16 +25,19 @@
   // width: 940px;
   width: 100%;
   margin: 0 auto;
-  .ant-bubble-content {
+  :global(.ant-avatar.ant-avatar-icon) {
+    background: transparent;
+  }
+  :global(.ant-bubble-content) {
     background-color: #fff;
   }
   &[role="local"] {
-    .ant-bubble-content {
-      background-color: rgba(22, 119, 255, 0.1);
+    :global(.ant-bubble-content) {
+      background-color: rgba(22, 119, 255, 0.06);
     }
   }
   &[role="suggestion"] {
-    .ant-bubble-content {
+    :global(.ant-bubble-content) {
       background-color: transparent;
     }
   }

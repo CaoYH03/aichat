@@ -8,16 +8,18 @@ interface UserInfo {
   position: string;
   user_name: string;
   userId: string;
+  level: number;
 }
 
 interface UserStore {
-  userInfo: UserInfo | { userId: string };
+  userInfo: UserInfo | { userId: string, level: number };
   setUserInfo: (userInfo: UserInfo) => void;
 }
 
 export const useUserStore = create<UserStore>((set) => ({
   userInfo: {
     userId: '',
+    level: 0
   },
   setUserInfo: (userInfo: UserInfo) => {
     set({ userInfo });

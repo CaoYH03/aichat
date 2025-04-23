@@ -10,20 +10,22 @@ const IndexContent = () => {
   const [isSessionFold, setIsSessionFold] = useState(false);
   const [isGlobalSearchFold, setIsGlobalSearchFold] = useState(true);
   const handFold = () => {
-    if(isSessionFold && !isGlobalSearchFold) {
-      eventBus.emit('globalSearch', true);
-    }
+   if(!isGlobalSearchFold) {
+      setIsGlobalSearchFold(true);
+   }
     setIsSessionFold(!isSessionFold);
   };
   useEffect(() => {
-    eventBus.on('globalSearch', (status: boolean) => {
-      setIsGlobalSearchFold(status);
-      setIsSessionFold(true);
+    eventBus.on('globalSearch', () => {
+      setIsGlobalSearchFold(!isGlobalSearchFold);
+      if(!isSessionFold) {
+        setIsSessionFold(true);
+      }
     });
     return () => {
       eventBus.off('globalSearch');
     };
-  }, []);
+  }, [isSessionFold, isGlobalSearchFold]);
   return (
     <div className="h-[calc(100vh-16px)] max-w-screen flex-1 bg-[#f6f7fb] mr-[8px] mt-[8px] mb-[8px] rounded-[12px]">
       <Flex className="h-full">

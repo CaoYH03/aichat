@@ -11,7 +11,6 @@ import {
   Divider,
   Descriptions,
   Button,
-  message as messageAntd,
 } from "antd";
 import {
   searchCompany,
@@ -190,7 +189,7 @@ const GlobalSearch = ({ isFold }: { isFold: boolean }) => {
         backgroundColor: "#fff",
       }}
     >
-      <div className="p-[0_20px_20px]">
+      <div className="p-[0_20px_20px] w-[300px]">
         <div className="sticky top-0 bg-[#fff] z-10 pt-[20px]">
           <Input.Search
             placeholder="搜索"

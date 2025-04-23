@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "cross-env NODE_ENV=local vite",
     "build": "cross-env NODE_ENV=production vite build",
-    "build:dev": "cross-env NODE_ENV=development vite build",
+    "build:dev": "cross-env NODE_ENV=development vite build --mode test",
     "lint": "eslint .",
     "preview": "vite preview"
   },

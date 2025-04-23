@@ -12,10 +12,12 @@ import type { BubbleProps } from "@ant-design/x";
 import { MessageInfo } from "@ant-design/x/es/use-x-chat";
 import "@client/assets/markdown.less";
 import MarkdownCustom from "@client/components/MarkdownCustom"; // 导入类型
-import "./index.less";
+import styles from "./index.module.less";
 import eventBus from "@client/hooks/eventMitt";
 import { insertBrief } from "@client/api";
+import { useUserStore } from "@client/store/user";
 const host = import.meta.env.VITE_HOST;
+const level = import.meta.env.VITE_LEVEL;
 
 interface BubbleListProps {
   messages: MessageInfo<string>[];
@@ -33,7 +35,7 @@ interface BubbleItem {
 
 const BubbleList: React.FC<BubbleListProps> = React.forwardRef(({ messages, isTyping, isTypingComplete }, ref) => {
   const [items, setItems] = useState<BubbleItem[]>([]);
-
+  const userInfo = useUserStore((state) => state.userInfo);
   
   // 渲染 Markdown 时创建并存储引用
   const renderMarkdown: BubbleProps["messageRender"] = (content) => {
@@ -54,7 +56,7 @@ const BubbleList: React.FC<BubbleListProps> = React.forwardRef(({ messages, isTy
           key: "msg_suggestion_" + Math.random().toString(),
           role: "suggestion",
           content: data,
-          className: "bubble-item",
+          className: styles.bubbleItem,
         },
       ];
     });
@@ -73,7 +75,7 @@ const BubbleList: React.FC<BubbleListProps> = React.forwardRef(({ messages, isTy
             role: "ai",
             content: "正在加载...",
             loading: true,
-            className: "bubble-item",
+            className: styles.bubbleItem,
           },
         ];
       });
@@ -96,6 +98,19 @@ const BubbleList: React.FC<BubbleListProps> = React.forwardRef(({ messages, isTy
     };
   }, [handleGetNextSuggestionSuccess]);
   const handleInsertBrief = useCallback(async(index: number, bubbleRef: string) => {
+    if(userInfo.level < level) {
+      notification.warning({
+        message: "权限不足",
+        placement: "top",
+        description: (
+          <div>
+            <p> 权限不足，请开通会员权益 <a href={`https://data.iyiou.com/premium`} target="_blank" onClick={()=> {
+              notification.destroy();
+            }}>【立即前往】</a></p>
+          </div>
+        ),
+      });
+    }
     const markdownContainerEl = document.getElementById(bubbleRef);
     const markdownContent = markdownContainerEl?.querySelectorAll('.eoai-markdown');
    const res = await insertBrief({
@@ -125,7 +140,7 @@ const BubbleList: React.FC<BubbleListProps> = React.forwardRef(({ messages, isTy
           key: id,
           role: status === "local" ? "local" : "ai",
           content: message,
-          className: "bubble-item",
+          className: styles.bubbleItem,
           id: bubbleRef,
           footer: status !== "local" && (
           <Flex>

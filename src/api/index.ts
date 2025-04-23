@@ -127,3 +127,12 @@ export const insertBrief = async (data: BriefingCreateParams) => {
     }),
   });
 };
+// 推荐简报
+export const getRecommendBrief = async (page: number = 1, pageSize: number = 3) => {
+  return request(`/spa/recommend/brief_follow?page=${page}&pageSize=${pageSize}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+};
