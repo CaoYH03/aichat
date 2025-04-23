@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { Flex, type GetProp, Button, Tooltip, notification, message } from "antd";
 import {
   UserOutlined,
@@ -35,6 +35,7 @@ interface BubbleItem {
 
 const BubbleList: React.FC<BubbleListProps> = React.forwardRef(({ messages, isTyping, isTypingComplete }, ref) => {
   const [items, setItems] = useState<BubbleItem[]>([]);
+  const isLoadInsertBriefRef = useRef(true);
   const userInfo = useUserStore((state) => state.userInfo);
   // 渲染 Markdown 时创建并存储引用
   const renderMarkdown: BubbleProps["messageRender"] = (content) => {
@@ -98,10 +99,16 @@ const BubbleList: React.FC<BubbleListProps> = React.forwardRef(({ messages, isTy
   }, [handleGetNextSuggestionSuccess]);
   const handleInsertBrief = useCallback(async(index: number, bubbleRef: string, disable = false) => {
     if(disable){
-
       message.warning("请耐心等待AI完成输出，再进行同步哦");
       return;
     }
+    if(!isLoadInsertBriefRef.current){
+      notification.warning({
+        message: "您同步太快了，请弹窗消失后3秒再试",
+        placement: "top",
+      });
+      return;
+    };
     if(userInfo.level < level) {
       notification.warning({
         message: "权限不足",
@@ -122,6 +129,7 @@ const BubbleList: React.FC<BubbleListProps> = React.forwardRef(({ messages, isTy
       content: markdownContent![0].innerHTML || "<p>同步失败！</p>",
     });
     if (res.code === 200) {
+      isLoadInsertBriefRef.current = false;
       notification.success({
         message: "同步成功",
         placement: "top",
@@ -132,6 +140,11 @@ const BubbleList: React.FC<BubbleListProps> = React.forwardRef(({ messages, isTy
             }}>【立即查看】</a></p>
           </div>
         ),
+        onClose: () => {
+         setTimeout(()=> {
+          isLoadInsertBriefRef.current = true;
+         }, 3000);
+        }
       });
     }
   }, [messages, userInfo.level]);
