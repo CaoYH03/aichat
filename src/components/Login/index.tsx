@@ -2,7 +2,7 @@
 import { Modal, Input, Button, Space, Tabs, message } from 'antd';
 import { useState } from 'react';
 import ReactDom from "react-dom/client";
-import { QqOutlined, WechatOutlined } from '@ant-design/icons';
+import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import type { ChangeEvent } from 'react';
 import styles from './index.module.less';
 import {
@@ -10,6 +10,7 @@ import {
   geeVerify,
   getToken,
   getUserInfo,
+  passwordLogin,
 } from '@client/api/login';
 import cookie from 'js-cookie';
 import { useUserStore } from '@client/store/user';
@@ -52,6 +53,7 @@ const LoginModal: LoginModalType = ({ visible, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(COUNT_DOWN_TIME);
   const [isCaptha, setIsCaptha] = useState(false);
+  const [password, setPassword] = useState('');
   const setUserInfo = useUserStore((state) => state.setUserInfo);
   const handleSendCode = async () => {
     if (!phone.trim()) {
@@ -148,6 +150,39 @@ const LoginModal: LoginModalType = ({ visible, onClose }) => {
     }
     setLoading(false);
   };
+  const handlePasswordLogin = async () => {
+    if (!phone || !password) {
+      message.error('请输入手机号和密码');
+      return;
+    }
+    setLoading(true);
+    const response = await passwordLogin({
+      isRememberMe: 1,
+      mobile: phone,
+      password,
+    });
+    if (response.code === 200) {
+      cookie.set('token', response.data.token);
+      const userInfo = await getUserInfo();
+      if (userInfo.code === 200) { 
+        // 存在 zustand 中
+        setUserInfo(userInfo.data);
+        message.success('登录成功');
+        onClose();
+        // const preConversationId = sessionStorage.getItem('preConversationId');
+        // if (preConversationId) {
+        //   // todo 需要将 loginModal优化成 provider, 然后通过 context 传递参数,可以使用 react-router-dom 的 useSearchParams 来传递参数
+        //   location.href = `/ai-agent?conversationId=${preConversationId}`;
+        //   sessionStorage.removeItem('preConversationId');
+        // }
+      } else {
+        message.error(userInfo.message);
+      }
+    } else {
+      message.error(response.message);
+    }
+    setLoading(false);
+  };
 
   const items = [
     {
@@ -157,7 +192,7 @@ const LoginModal: LoginModalType = ({ visible, onClose }) => {
         <div className="py-5">
           <div className="mb-4">
             <Input
-              className={styles.phoneInput}
+              size="large"
               placeholder="请输入手机号"
               value={phone}
               onChange={(e: ChangeEvent<HTMLInputElement>) =>
@@ -168,7 +203,7 @@ const LoginModal: LoginModalType = ({ visible, onClose }) => {
           </div>
           <Space.Compact className="w-full">
             <Input
-              className="h-[40px]"
+              size="large"
               placeholder="请输入验证码"
               value={code}
               onChange={(e: ChangeEvent<HTMLInputElement>) =>
@@ -188,9 +223,47 @@ const LoginModal: LoginModalType = ({ visible, onClose }) => {
           )}
           <Button
             type="primary"
-            className="w-full h-[40px]! bg-indigo-500! hover:bg-indigo-500! rounded-full mt-8"
+            className="w-full bg-indigo-500! hover:bg-indigo-500! rounded-full mt-8"
             loading={loading}
             onClick={handleLogin}>
+            登录
+          </Button>
+        </div>
+      ),
+    },
+    {
+      key: 'password',
+      label: '密码登录',
+      children: (
+        <div className="py-5">
+          <div className="mb-4">
+            <Input
+              size="large"
+              className={styles.phoneInput}
+              placeholder="请输入手机号"
+              value={phone}
+              onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                setPhone(e.target.value)
+              }
+              prefix={<UserOutlined />}
+            />
+          </div>
+          <Space.Compact className="w-full">
+            <Input.Password
+              size="large"
+              placeholder="请输入密码"
+              value={password}
+              onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                setPassword(e.target.value)
+              }
+              prefix={<LockOutlined />}
+            />
+          </Space.Compact>
+          <Button
+            type="primary"
+            className="w-full h-[40px]! bg-indigo-500! hover:bg-indigo-500! rounded-full mt-8"
+            loading={loading}
+            onClick={handlePasswordLogin}>
             登录
           </Button>
         </div>
@@ -221,7 +294,11 @@ const LoginModal: LoginModalType = ({ visible, onClose }) => {
       </div>
       <Tabs
         activeKey={activeTab}
-        onChange={setActiveTab}
+        onChange={(key) => {
+          setActiveTab(key);
+          setPassword('');
+          setCode('');
+        }}
         items={items}
         centered
       />

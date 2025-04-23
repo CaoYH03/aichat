@@ -173,7 +173,7 @@ const GlobalSearch = ({ isFold }: { isFold: boolean }) => {
     <motion.div
       initial={{ width: 0, opacity: 1 }}
       animate={{
-        width: isFold ? 0 : 370,
+        width: isFold ? 0 : 300,
         opacity: 1,
       }}
       transition={{

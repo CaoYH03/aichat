@@ -33,7 +33,7 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
   const editingSession = useRef({ index: -1, value: '' });
   const [isCreateNewSession, setIsCreateNewSession] = useState(false);
   const [style] = useState({
-    width: '200px',
+    width: '230px',
     minHeight: '100%',
     padding: '0',
     overflow: 'hidden',
@@ -276,9 +276,9 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
     <motion.div
       className={styles.sessionListContainer}
       id="scrollableDiv"
-      initial={{ width: 300, opacity: 1 }}
+      initial={{ width: 260, opacity: 1 }}
       animate={{
-        width: isFold ? 0 : 300,
+        width: isFold ? 0 : 260,
         opacity: 1,
       }}
       transition={{
@@ -286,6 +286,7 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
         ease: 'easeInOut',
       }}
       style={{
+        flexShrink: 0,
         willChange: 'width',
         overflowY: !isTypingComplete ? 'hidden' : 'auto',
         height: '100%',

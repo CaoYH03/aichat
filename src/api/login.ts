@@ -13,7 +13,11 @@ interface VerificationCodeLoginData {
   source: string; // 来源
   registerWebsite: string; // 注册网站
 }
-
+interface PasswordLoginData {
+  isRememberMe: 1; // 是否记住我
+  mobile: string; // 手机号
+  password: string; // 密码
+}
 export const getGeetest = async () => {
   return request('/spa/api/geetest/first_register', {
     method: 'GET',
@@ -52,5 +56,17 @@ export const getUserInfo = async () => {
     headers: {
       Auth: cookie.get('token') || '',
     },
+  });
+};
+/**
+ * 密码登录
+ */
+export const passwordLogin = async (data: PasswordLoginData) => {
+  return request('/spa/user/login', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
   });
 };

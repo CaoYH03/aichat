@@ -29,7 +29,7 @@ const Index = () => {
   return (
     <>
       {isLoading ? (
-        <div>
+        <div className="p-[8px]">
           <Spin />
         </div>
       ) : (

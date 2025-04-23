@@ -174,7 +174,7 @@ const Chat = () => {
   // 数据管理
   const {
     onRequest,
-    parsedMessages: messages,
+    messages,
     setMessages,
   } = useXChat({
     agent,
@@ -337,7 +337,7 @@ const Chat = () => {
   };
   return (
     <>
-      <div className="w-full h-full box-border p-[32px_8px]">
+      <div className="w-full h-full box-border p-[32px_8px] flex-1">
         <div className="h-full flex flex-col items-center justify-between relative">
           {chatContent}
           <ScrollToBottom
@@ -350,10 +350,16 @@ const Chat = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 1 }}>
+              transition={{ duration: 1 }}
+              style={{
+                width: 'calc(100% - 78px)',
+                position: 'relative',
+                left: '22px',
+              }}
+              >
               <Button className="m-[10px_0]" onClick={handleGlobalSearch} icon={<SearchOutlined />}>精确搜索</Button>
               <Sender
-                className="w-[896px]! max-w-[896px] min-w-[320px]"
+                className="w-full"
                 loading={isRequesting}
                 value={content}
                 placeholder="随便问点什么"
