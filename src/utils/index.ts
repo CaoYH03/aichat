@@ -35,3 +35,9 @@ export function compareDate(target: number, date: number) {
   
   return '更早';
 }
+
+// 检测是否为移动端的函数
+export const isMobileDevice = () => {
+  const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+  return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
+};

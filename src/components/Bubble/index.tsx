@@ -201,7 +201,7 @@ const BubbleList: React.FC<BubbleListProps> = React.forwardRef(({ messages, isTy
           />
         ),
       },
-      typing: isTyping ? { step: 3, interval: 30 } : undefined,
+      typing: isTyping ? { step: 1, interval: 15 } : undefined,
       // typing: isTyping ? true : undefined,
       messageRender: renderMarkdown,
       onTypingComplete: () => {
