@@ -129,7 +129,11 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
       limit: 20,
     });
     if(response.code === 401) return;
-    if(!response.data) return;
+    if(!response.data) {
+      console.log('没有更多了');
+      setHasMore(false);
+      return;
+    };
     setHasMore(response.hasMore || response.has_more);
     if (lastId) {
       setItems((prev) => [
@@ -205,7 +209,7 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
         fetchMore();
       }
     }
-  }, [items, hasMore, fetchMore]);
+  }, [items, hasMore]);
 
   const handleActiveChange = (key: string) => {
     setActiveKey(key);
