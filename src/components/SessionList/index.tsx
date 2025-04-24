@@ -128,7 +128,8 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
       last_id: lastId,
       limit: 20,
     });
-    if(response.code === 401)  return;
+    if(response.code === 401) return;
+    if(!response.data) return;
     setHasMore(response.hasMore || response.has_more);
     if (lastId) {
       setItems((prev) => [
