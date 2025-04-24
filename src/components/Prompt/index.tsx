@@ -139,7 +139,7 @@ import {
           {
             key: '3-3',
             description: '帮助中心',
-            url: `https://${host}.iyiou.com/help`,
+            url: `https://${host}.iyiou.com/share/briefing/sTwN2aP01X`,
           },
           {
             key: '3-4',
