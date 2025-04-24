@@ -16,70 +16,78 @@ import {
 import './index.less';
 import eventBus from '@client/hooks/eventMitt';
 import type { MessageInfo, MessageStatus } from '@ant-design/x/es/use-x-chat';
-import { addSearchParams } from '@client/utils';
+// import { addSearchParams } from '@client/utils';
 import { useIsLogin } from '@client/hooks/useIsLogin';
 import { useUserStore } from '@client/store/user';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import LoginModal from '@client/components/Login';
+
+// 类型定义
 interface ChatMessage {
   query: string;
-  agentThoughts: Array<{ thought: string; observation: string; tool: string }>;
-  agent_thoughts: Array<{ thought: string }>;
   answer: string;
 }
-// 格式化消息列表
-const formatMessageList = (data: ChatMessage[]) => {
-  const messageList: MessageInfo<string>[] = [];
-  if (data.length > 0) {
-    data.forEach((item: ChatMessage, index: number) => {
-      messageList.push(
-        // local
-        {
-          id: `msg_${index + Math.random().toString()}`,
-          message: item.query,
-          status: 'local' as MessageStatus,
-        },
-        // ai
-        {
-          id: `msg_${index + Math.random().toString()}`,
-          message: item.answer,
-          status: 'ai' as MessageStatus,
-        }
-      );
-    });
-  }
-  return messageList;
+
+// 工具函数
+const formatMessageList = (data: ChatMessage[]): MessageInfo<string>[] => {
+  if (!data.length) return [];
+  
+  return data.flatMap((item: ChatMessage, index: number) => [
+    // local message
+    {
+      id: `msg_local_${index}_${Math.random()}`,
+      message: item.query,
+      status: 'local' as MessageStatus,
+    },
+    // ai message
+    {
+      id: `msg_ai_${index}_${Math.random()}`,
+      message: item.answer,
+      status: 'ai' as MessageStatus,
+    }
+  ]);
 };
-// 滚动到底部
+
 const scrollToBottom = (el: { nativeElement: HTMLDivElement }) => {
+  if (!el?.nativeElement) return;
+  
   const elDom = el.nativeElement;
   setTimeout(() => {
-  elDom.scrollTop = elDom.scrollHeight;
+    elDom.scrollTop = elDom.scrollHeight;
   }, 100);
 };
 
-// 聊天页面
+// 聊天页面组件
 const Chat = () => {
+  // 状态管理
   const [content, setContent] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isRequesting, setIsRequesting] = useState(false);
   const [isTypingComplete, setIsTypingComplete] = useState(true);
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const id = searchParams.get('conversationId');
-  const [isMessageLoading, setIsMessageLoading] = useState(id ? true : false);
-  const abortRef = useRef(() => {});
+  const navigate = useNavigate();
+  const [isMessageLoading, setIsMessageLoading] = useState(!!id);
+  
+  // refs
+  const abortRef = useRef<() => void>(() => {});
   const currentTaskIdRef = useRef('');
   const currentConversationIdRef = useRef('');
   const currentMessageIdRef = useRef('');
-  const BubbleListRef = useRef<HTMLDivElement | null>(null);
+  const BubbleListRef = useRef<{ nativeElement: HTMLDivElement } | null>(null);
+  
+  // hooks
   const { userInfo, setUserInfo } = useUserStore();
-  const userStoreSelector = useUserStore.getState; 
+  const userStoreSelector = useUserStore.getState;
   const [isLogin] = useIsLogin();
+
+
   // 请求代理
   const [agent] = useXAgent({
     request: async ({ message }, { onUpdate, onSuccess }) => {
       const currentUserInfo = userStoreSelector().userInfo;
+      const controller = new AbortController();
+      const signal = controller.signal;
       const response = await chatMessage({
         inputs: {},
         query: message,
@@ -87,8 +95,74 @@ const Chat = () => {
         conversation_id: currentConversationIdRef.current,
         user: currentUserInfo.userId,
         files: [],
-      });
-      if (response.status === 401) {
+      },signal);
+      
+      // 处理错误响应
+      if (handleApiError(response.status)) return;
+      if (!response.body) throw new Error('No response body');
+      
+      // 处理流式响应
+      let content = '';
+      const stream = XStream({ readableStream: response.body });
+      const reader = stream.getReader();
+      
+      // 保存取消函数
+      abortRef.current = () => {
+        controller.abort();
+      };
+      
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          
+          if (done) {
+            onSuccess(content);
+            eventBus.emit('requestSessionList', true);
+            break;
+          }
+          
+          try {
+            const parsedChunk = JSON.parse(value.data);
+            
+            if (!parsedChunk.event.includes('message_end')) {
+              // 更新任务ID
+              if (parsedChunk.task_id !== currentTaskIdRef.current) {
+                currentTaskIdRef.current = parsedChunk.task_id;
+              }
+              
+              // 更新会话ID
+              if (parsedChunk.conversation_id !== currentConversationIdRef.current) {
+                currentConversationIdRef.current = parsedChunk.conversation_id;
+                navigate(`/?conversationId=${parsedChunk.conversation_id}`);
+              }
+              
+              // 更新消息ID
+              if (parsedChunk.message_id !== currentMessageIdRef.current) {
+                currentMessageIdRef.current = parsedChunk.message_id;
+              }
+              
+              // 更新内容
+              const newContent = parsedChunk.answer || '';
+              content += newContent;
+              onUpdate(content);
+            }
+          } catch (error) {
+            console.error('Error parsing chunk:', error);
+          }
+        }
+      } finally {
+        reader.releaseLock();
+      }
+    },
+  });
+
+  // 数据管理
+  const { onRequest, messages, setMessages } = useXChat({ agent });
+
+    // 处理API错误响应
+    const handleApiError = useCallback((status: number) => {
+      if (status === 401) {
+        // 处理401未授权错误
         setUserInfo({
           userId: '',
           level: 0,
@@ -98,246 +172,152 @@ const Chat = () => {
           position: '',
           user_name: '',
         });
-        setMessages((prev ) => [...prev, {
-          id: `msg_${Math.random().toString()}`,
-          message: '登录过期，请重新登录',
-          status: 'success' as MessageStatus,
-        }]);
+        
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `msg_error_${Math.random()}`,
+            message: '登录过期，请重新登录',
+            status: 'success' as MessageStatus,
+          }
+        ]);
+        
         LoginModal.show();
-        return;
-      }
-      if (response.status !== 200) {
-        setMessages((prev ) => [...prev, {
-          id: `msg_${Math.random().toString()}`,
-          message: '服务器异常，请稍后再试',
-          status: 'success' as MessageStatus,
-        }]);
+        return true;
+      } 
+      
+      if (status !== 200) {
+        // 处理其他错误
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `msg_error_${Math.random()}`,
+            message: '服务器异常，请稍后再试',
+            status: 'success' as MessageStatus,
+          }
+        ]);
+        
         notification.error({
           message: '服务器异常',
           description: (
             <div>
               <p>请检查网络连接或稍后再试</p>
-              <a href="javascript:void(0)" onClick={() => {
-                window.location.reload();
-              }}>刷新页面</a>
+              <a href="javascript:void(0)" onClick={() => window.location.reload()}>
+                刷新页面
+              </a>
             </div>
           ),
         });
+        
         setIsRequesting(false);
         eventBus.emit('onIsTypingComplete', true);
-        return;
+        return true;
       }
-      if (!response.body) {
-        throw new Error('No response body');
-      }
-      let content = '';
-      const stream = XStream({
-        readableStream: response.body,
-      });
+      
+      return false;
+    }, [setMessages, setUserInfo]);
 
-      // 在循环前获取 reader
-      const reader = stream.getReader();
-
-      // 保存取消函数
-      abortRef.current = () => {
-        reader.cancel();
-      };
-
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) {
-            onSuccess(content);
-            eventBus.emit('requestSessionList', true);
-            break;
-          }
-
-          try {
-            const parsedChunk = JSON.parse(value.data);
-            if (!parsedChunk.event.includes('message_end')) {
-              if (parsedChunk.task_id !== currentTaskIdRef.current) {
-                currentTaskIdRef.current = parsedChunk.task_id;
-              }
-              if (
-                parsedChunk.conversation_id !== currentConversationIdRef.current
-              ) {
-                currentConversationIdRef.current = parsedChunk.conversation_id;
-                // 添加conversationId到url中
-                addSearchParams('conversationId', parsedChunk.conversation_id);
-              }
-              if (parsedChunk.message_id !== currentMessageIdRef.current) {
-                currentMessageIdRef.current = parsedChunk.message_id;
-              }
-              const newContent = parsedChunk.answer || '';
-              content += newContent;
-              onUpdate(content);
-            }
-          } catch (error) {
-            console.error(error);
-          }
-        }
-      } finally {
-        // 释放锁
-        reader.releaseLock();
-      }
-    },
-  });
-  // 数据管理
-  const {
-    onRequest,
-    messages,
-    setMessages,
-  } = useXChat({
-    agent,
-  });
+  // 开始聊天
   const startChat = useCallback((content: string) => {
+    if (!content.trim()) return;
+    
     setIsTyping(true);
     onRequest(content);
     setIsRequesting(true);
     setIsTypingComplete(false);
     eventBus.emit('onIsTypingComplete', false);
-  }, [onRequest, setIsTyping, setIsRequesting, setIsTypingComplete]);
-  const chatContent = useMemo(() => {
-    if(isMessageLoading) {
-      return <Spin indicator={<LoadingOutlined spin  />} size="large" style={{ top: '20%', }} />
+  }, [onRequest]);
+
+  // 取消请求
+  const handleCancel = useCallback(() => {
+    setIsTypingComplete(true);
+    eventBus.emit('onIsTypingComplete', true);
+    setIsRequesting(false);
+    if(currentTaskIdRef.current) {
+      stopChat(currentTaskIdRef.current, { user: userInfo.userId });
     }
-    if(messages.length > 0) {
-      return (
-        <BubbleList ref={BubbleListRef} messages={messages} isTyping={isTyping} isTypingComplete={isTypingComplete} />
-      );
-    }
-    return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 1 }}
-        className="w-full h-full flex justify-center items-center">
-        <Prompt handleClickRecommendItem={startChat} />
-      </motion.div>
-    )
-  }, [startChat, isMessageLoading, messages, isTyping, isTypingComplete]);
-  const handleGlobalSearch = () => {
-    eventBus.emit('globalSearch');
-  }
-    // 创建会话
-    const handleCreateSession = useCallback(async () => {
-      setMessages([]);
-      setIsTyping(true);
-      currentConversationIdRef.current = '';
-      navigate('/');
-    }, [setMessages, navigate]);
-  // 初始化请求会话
-  useEffect(() => {
-    const initSession = async () => {
-      if (!isLogin) {
-        sessionStorage.setItem('preConversationId', id || '');
-        setIsMessageLoading(false);
-        return;
+    abortRef.current();
+  }, [userInfo.userId]);
+
+  // 提交消息
+  const handleSubmit = useCallback((nextContent: string) => {
+    startChat(nextContent);
+    setContent('');
+    setTimeout(() => {
+      if (BubbleListRef.current) {
+        scrollToBottom(BubbleListRef.current);
       }
-      if(!id) return;
-        currentConversationIdRef.current = id;
-        const { data } = await checkSession(id, userInfo.userId);
-        if (data && data.length > 0) {
-          setMessages(formatMessageList(data));
-          setIsTyping(false);
-        } else {
-          handleCreateSession();
-        }
-      setIsMessageLoading(false);
-    };
-    initSession();
-  }, [setMessages, isLogin, handleCreateSession, userInfo.userId, id]);
+    }, 100);
+  }, [startChat]);
+
   // 输入框内容变化
   const handleChange = useCallback((e: string) => {
     setContent(e);
   }, []);
-  // 点击取消
-  const handleCancel = () => {
-    abortRef.current();
-    stopChat(currentTaskIdRef.current, {
-      user: userInfo.userId,
-    });
-  };
-  // 点击发送
-  const handleSubmit = (nextContent: string) => {
-    startChat(nextContent)
-    setContent('')
-    setTimeout(() => {
-      scrollToBottom(BubbleListRef.current!);
-    }, 100);
-  };
+
+  // 创建会话
+  const handleCreateSession = useCallback(() => {
+    setMessages([]);
+    // setIsTyping(true);
+    currentConversationIdRef.current = '';
+    navigate('/');
+  }, [setMessages, navigate]);
+
   // 点击会话
-  const handleCheckSession = useCallback(
-    async (event: unknown) => {
-      setIsMessageLoading(true);
-      const sessionId = event as string;
+  const handleCheckSession = useCallback(async (event: unknown) => {
+    setIsMessageLoading(true);
+    const sessionId = event as string;
+    currentConversationIdRef.current = sessionId;
+    setSearchParams({ conversationId: sessionId });
+    try {
       const { data } = await checkSession(sessionId, userInfo.userId);
-      if(data && data.length > 0) {
+      
+      if (data?.length > 0) {
         setMessages(formatMessageList(data));
-        currentConversationIdRef.current = sessionId;
         setIsTyping(false);
       } else {
         setMessages([]);
       }
+    } catch (error) {
+      console.error('Failed to check session:', error);
+      notification.error({ message: '获取会话失败' });
+    } finally {
       setIsMessageLoading(false);
-    },
-    [setMessages, userInfo.userId]
-  );
+    }
+  }, [setMessages, userInfo.userId, setSearchParams]);
+
   // 点击会话建议
-  const handleSuggestionSendMessage = useCallback(
-    (event: unknown) => {
-      const data = event as { description: string };
-      startChat(data.description)
-      
-    },
-    [startChat]
-  );
-  // 监听点击会话
-  useEffect(() => {
-    eventBus.on('checkSession', handleCheckSession);
-    return () => {
-      eventBus.off('checkSession', handleCheckSession);
-    };
-  }, [handleCheckSession]);
-  // 监听创建会话
-  useEffect(() => {
-    eventBus.on('createSession', handleCreateSession);
-    return () => {
-      eventBus.off('createSession', handleCreateSession);
-    };
-  }, [handleCreateSession]);
-  useEffect(() => {
-    eventBus.on('suggestionSendMessage', handleSuggestionSendMessage);
-    return () => {
-      eventBus.off('suggestionSendMessage', handleSuggestionSendMessage);
-    };
-  }, [handleSuggestionSendMessage]);
+  const handleSuggestionSendMessage = useCallback((event: unknown) => {
+    const data = event as { description: string };
+    startChat(data.description);
+  }, [startChat]);
+
   // 获取下一轮会话建议
   const handleGetNextSuggestion = useCallback(async () => {
     setIsTypingComplete(true);
     eventBus.emit('onIsTypingComplete', true);
     setIsRequesting(false);
-    if(!isLogin) {
-      return;
-    }
-    if (currentMessageIdRef.current) {
+    
+    if (!isLogin || !currentMessageIdRef.current) return;
+    
+    try {
       const res = await getNextSuggestion(currentMessageIdRef.current, userInfo.userId);
-      if (res.result === 'success' && res.data && res.data.length > 0) {
+      
+      if (res.result === 'success' && res.data?.length > 0) {
         eventBus.emit('getNextSuggestionSuccess', res.data);
       }
+    } catch (error) {
+      console.error('Failed to get next suggestion:', error);
     }
   }, [userInfo.userId, isLogin]);
-  // 监听获取下一轮会话建议
-  useEffect(() => {
-    eventBus.on('onTypingComplete', handleGetNextSuggestion);
-    return () => {
-      eventBus.off('onTypingComplete', handleGetNextSuggestion);
-    };
-  }, [handleGetNextSuggestion]);
+
+  // 全局搜索
+  const handleGlobalSearch = useCallback(() => {
+    eventBus.emit('globalSearch');
+  }, []);
 
   // 滚动到底部
-  const handleScrollToBottom = () => {
+  const handleScrollToBottom = useCallback(() => {
     const el = BubbleListRef.current?.nativeElement;
     if (el) {
       el.scrollTo({
@@ -345,45 +325,132 @@ const Chat = () => {
         behavior: 'smooth',
       });
     }
-  };
-  return (
-    <>
-      <div className="w-full h-full box-border p-[32px_8px] flex-1">
-        <div className="h-full flex flex-col items-center justify-between relative">
-          {chatContent}
-          <ScrollToBottom
-            onScrollToBottomClick={handleScrollToBottom}
-            visible={messages.length > 0}
-          />
+  }, []);
 
-          <div className="w-full flex justify-center">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 1 }}
-              style={{
-                width: 'calc(100% - 78px)',
-                position: 'relative',
-                left: '22px',
-              }}
-              >
-              <Button className="m-[10px_0]" onClick={handleGlobalSearch} icon={<SearchOutlined />}>精确搜索</Button>
-              <Sender
-                className="w-full"
-                loading={isRequesting}
-                value={content}
-                placeholder="随便问点什么"
-                onChange={handleChange}
-                onCancel={handleCancel}
-                onSubmit={handleSubmit}
-                disabled={!isLogin}
-              />
-            </motion.div>
-          </div>
+  // 聊天内容渲染
+  const chatContent = useMemo(() => {
+    if (isMessageLoading) {
+      return <Spin indicator={<LoadingOutlined spin />} size="large" style={{ top: '20%' }} />;
+    }
+    
+    if (messages.length > 0) {
+      return (
+        <BubbleList 
+          ref={BubbleListRef} 
+          messages={messages} 
+          isTyping={isTyping} 
+          isTypingComplete={isTypingComplete} 
+        />
+      );
+    }
+    
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 1 }}
+        className="w-full h-full flex justify-center items-center"
+      >
+        <Prompt handleClickRecommendItem={startChat} />
+      </motion.div>
+    );
+  }, [messages, isTyping, isTypingComplete, isMessageLoading, startChat]);
+
+  // 初始化会话
+  useEffect(() => {
+    const initSession = async () => {
+      if (!isLogin) {
+        setIsMessageLoading(false);
+        return;
+      }
+      
+      if (!id) {
+        setIsMessageLoading(false);
+        setMessages([]);
+        return;
+      }
+      
+      try {
+        currentConversationIdRef.current = id;
+        const { data } = await checkSession(currentConversationIdRef.current, userInfo.userId);
+        
+        if (data?.length > 0) {
+          setMessages(formatMessageList(data));
+          setIsTyping(false);
+        } else {
+          handleCreateSession();
+        }
+      } catch (error) {
+        console.error('Failed to initialize session:', error);
+        notification.error({ message: '初始化会话失败' });
+      } finally {
+        setIsMessageLoading(false);
+      }
+    };
+    
+    initSession();
+  }, [isLogin, userInfo.userId, handleCreateSession, setMessages]);
+
+  // 事件监听
+  useEffect(() => {
+    // 会话事件监听
+    eventBus.on('checkSession', handleCheckSession);
+    eventBus.on('createSession', handleCreateSession);
+    eventBus.on('suggestionSendMessage', handleSuggestionSendMessage);
+    eventBus.on('onTypingComplete', handleGetNextSuggestion);
+    
+    return () => {
+      eventBus.off('checkSession', handleCheckSession);
+      eventBus.off('createSession', handleCreateSession);
+      eventBus.off('suggestionSendMessage', handleSuggestionSendMessage);
+      eventBus.off('onTypingComplete', handleGetNextSuggestion);
+    };
+  }, [handleCheckSession, handleCreateSession, handleSuggestionSendMessage, handleGetNextSuggestion]);
+
+  return (
+    <div className="w-full h-full box-border p-[32px_8px] flex-1">
+      <div className="h-full flex flex-col items-center justify-between relative">
+        {chatContent}
+        
+        <ScrollToBottom
+          onScrollToBottomClick={handleScrollToBottom}
+          visible={messages.length > 0}
+        />
+
+        <div className="w-full flex justify-center">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1 }}
+            style={{
+              width: 'calc(100% - 78px)',
+              position: 'relative',
+              left: '22px',
+            }}
+          >
+            <Button 
+              className="m-[10px_0]" 
+              onClick={handleGlobalSearch} 
+              icon={<SearchOutlined />}
+            >
+              精确搜索
+            </Button>
+            <Sender
+              className="w-full"
+              loading={isRequesting}
+              value={content}
+              placeholder="随便问点什么"
+              onChange={handleChange}
+              onCancel={handleCancel}
+              onSubmit={handleSubmit}
+              disabled={!isLogin}
+            />
+          </motion.div>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

@@ -2,9 +2,10 @@ import {
     FireOutlined,
     ReadOutlined,
     RocketOutlined,
+    CloseOutlined,
   } from '@ant-design/icons';
   import { Prompts } from '@ant-design/x';
-  import { Space } from 'antd';
+  import { Space, Modal } from 'antd';
   import React, { useMemo } from 'react';
   import { useRecommendBriefStore } from '@client/store/recommendBrief';
   import styles from './index.module.less';
@@ -15,6 +16,7 @@ import {
       key: string;
       url: string;
       description: string;
+      onClick?: () => void;
     };
   }
   const renderTitle = (icon: React.ReactNode, title: string) => (
@@ -29,6 +31,39 @@ import {
       <span style={{ fontSize: 16, fontWeight: 600, color: '#000' }}>行业助手</span>
     </div>
   );
+  // const connectModal = (open: boolean, setOpen: (open: boolean) => void) => {
+  //   return (
+  //     <Modal
+  //       title="联系我们"
+  //       open={open}
+  //       onCancel={() => setOpen(false)}
+  //     >
+  //     </Modal>
+  //   )
+  // }
+  const { info } = Modal;
+  const connectModal = () => {
+    info({
+      title: (
+        <div className='text-center text-[#333] relative top-[-8px]'>
+          <span>联系我们</span>
+          <CloseOutlined style={{ color: '#333', fontSize: 16, cursor: 'pointer', position: 'absolute', right: '-20px' }} onClick={() => Modal.destroyAll()} />
+        </div>
+      ),
+      content: (
+        <div className='text-center flex flex-col items-center text-[#333]'>  
+          <p className='mb-4'>扫描二维码，联系官方客服</p>
+          <img className='w-[100px] mx-auto mb-4' src="https://diting-hetu.iyiou.com/16893219646440.png" alt="联系我们" />
+          <p>电话：188-1134-6150</p>
+          <p>邮箱：songjianfeng@iyiou.com</p>
+        </div>
+      ),
+      icon: null,
+      footer: null,
+      closeIcon: <CloseOutlined />,
+      onCancel: () => {},
+    });
+  }
   const Prompt = ({handleClickRecommendItem}: {handleClickRecommendItem: (description: string) => void}) => {
     const recommendBrief = useRecommendBriefStore((state) => state.recommendBrief);
     const items = useMemo(() => [
@@ -87,52 +122,47 @@ import {
               color: '#722ED1',
             }}
           />,
-          '创建我的简报',
+          '快捷工具',
         ),
         description: '什么是简报？',
         children: [
           {
             key: '3-1',
-            description: '帮助中心',
-            url: 'https://help.iyiou.com',
+            description: '亿欧数据',
+            url: `https://${host}.iyiou.com/`,
           },
           {
             key: '3-2',
-            description: '联系我们',
-            url: 'https://help.iyiou.com',
+            description: '创建我的简报',
+            url: `https://${host}.iyiou.com/work/intelligence/briefing`,
           },
           {
             key: '3-3',
-            description: '敬请期待...',
-            disabled: true,
-            url: 'https://help.iyiou.com',
+            description: '帮助中心',
+            url: `https://${host}.iyiou.com/help`,
           },
           {
             key: '3-4',
-            description: '敬请期待...',
-            disabled: true,
-            url: 'https://help.iyiou.com',
+            description: '联系我们',
+            onClick: connectModal,
           },
         ],
       },
     ], [recommendBrief]);
     const handleItemClick = (info:ItemClickInfoProps) => {
-     const { data:{url, description} } = info;
+     const { data:{url, description, onClick} } = info;
      if(url) {
       window.open(url, '_blank');
+      return;
+     }
+     if(onClick) {
+      onClick();
       return;
      }
      handleClickRecommendItem(description);
     };
     return (
-        // <Card
-        //   style={{
-        //     borderRadius: 0,
-
-        //     border: 0,
-        //   }}
-        // >
-          <Prompts
+              <Prompts
             className={styles.prompt}
             title={promptTitle}
             items={items}
@@ -152,7 +182,6 @@ import {
             }}
             onItemClick={handleItemClick}
           />
-        // </Card>
   );
 };
 

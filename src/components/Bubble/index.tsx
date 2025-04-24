@@ -16,6 +16,7 @@ import styles from "./index.module.less";
 import eventBus from "@client/hooks/eventMitt";
 import { insertBrief } from "@client/api";
 import { useUserStore } from "@client/store/user";
+import LoginModal from "../Login";
 const host = import.meta.env.VITE_HOST;
 const level = import.meta.env.VITE_LEVEL;
 
@@ -109,6 +110,10 @@ const BubbleList: React.FC<BubbleListProps> = React.forwardRef(({ messages, isTy
       });
       return;
     };
+    if(userInfo.level === 0) {
+      LoginModal.show();
+      return;
+    }
     if(userInfo.level < level) {
       notification.warning({
         message: "权限不足",

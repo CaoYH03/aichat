@@ -19,12 +19,15 @@ import { useIsLogin } from '@client/hooks/useIsLogin';
 import LoginModal from '@client/components/Login';
 import styles from './index.module.less';
 import { useUserStore } from '@client/store/user';
+import { useNavigate } from 'react-router-dom';
+
 interface SessionItem {
   key: string;
   label: string | React.ReactNode;
 }
 
 const SessionList = ({ isFold }: { isFold: boolean }) => {
+  const navigate = useNavigate();
   const { userInfo } = useUserStore();
   const [items, setItems] = useState<SessionItem[]>([]);
   const [isTypingComplete, setIsTypingComplete] = useState(true);
@@ -207,7 +210,7 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
     setActiveKey(key);
     setIsCreateNewSession(false);
     if (key !== activeKey) {
-      addSearchParams('conversationId', key);
+      navigate(`/?conversationId=${key}`);
       eventBus.emit('checkSession', key);
     }
   };

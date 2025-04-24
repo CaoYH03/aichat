@@ -5,7 +5,7 @@ import { notification } from 'antd';
 import { useUserStore } from '@client/store/user';
 const baseUrl = import.meta.env.VITE_BASE_URL;
 const {setUserInfo} = useUserStore.getState();
-const request = async (url: string, options: RequestInit, isJson = true) => {
+const request = async (url: string, options: RequestInit, isJson = true, signal?: AbortSignal) => {
   const URL = `${baseUrl}${url}`
   const response = await fetch(URL, {
     ...options,
@@ -13,6 +13,7 @@ const request = async (url: string, options: RequestInit, isJson = true) => {
       ...options.headers,
       'Auth': Cookies.get('token') || '',
     },
+    signal,
   });
   if (isJson) {
     const data = await response.json();

@@ -12,13 +12,14 @@ interface BriefingCreateParams {
   subjectType?: number;
   briefNewsRelation?: string[];
 }
-export const chatMessage = async (data: unknown) => {
+export const chatMessage = async (data: unknown, signal?: AbortSignal) => {
   return request('/spa/llm/chat-messages', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(data),
+    signal
   }, false);
 };
 // 终止聊天
