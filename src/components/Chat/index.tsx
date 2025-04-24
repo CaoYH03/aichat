@@ -51,7 +51,7 @@ const formatMessageList = (data: ChatMessage[]) => {
   return messageList;
 };
 // 滚动到底部
-const scrollToBottom = (el: HTMLDivElement) => {
+const scrollToBottom = (el: { nativeElement: HTMLDivElement }) => {
   const elDom = el.nativeElement;
   setTimeout(() => {
   elDom.scrollTop = elDom.scrollHeight;
@@ -73,20 +73,31 @@ const Chat = () => {
   const currentConversationIdRef = useRef('');
   const currentMessageIdRef = useRef('');
   const BubbleListRef = useRef<HTMLDivElement | null>(null);
-  const { userInfo } = useUserStore();
+  const { userInfo, setUserInfo } = useUserStore();
+  const userStoreSelector = useUserStore.getState; 
   const [isLogin] = useIsLogin();
   // 请求代理
   const [agent] = useXAgent({
     request: async ({ message }, { onUpdate, onSuccess }) => {
+      const currentUserInfo = userStoreSelector().userInfo;
       const response = await chatMessage({
         inputs: {},
         query: message,
         response_mode: 'streaming',
         conversation_id: currentConversationIdRef.current,
-        user: userInfo.userId,
+        user: currentUserInfo.userId,
         files: [],
       });
       if (response.status === 401) {
+        setUserInfo({
+          userId: '',
+          level: 0,
+          id: '',
+          email: '',
+          avatar: '',
+          position: '',
+          user_name: '',
+        });
         setMessages((prev ) => [...prev, {
           id: `msg_${Math.random().toString()}`,
           message: '登录过期，请重新登录',

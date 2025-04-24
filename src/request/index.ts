@@ -2,7 +2,9 @@
 import Cookies from 'js-cookie';
 import LoginModal from '@client/components/Login';
 import { notification } from 'antd';
+import { useUserStore } from '@client/store/user';
 const baseUrl = import.meta.env.VITE_BASE_URL;
+const {setUserInfo} = useUserStore.getState();
 const request = async (url: string, options: RequestInit, isJson = true) => {
   const URL = `${baseUrl}${url}`
   const response = await fetch(URL, {
@@ -16,6 +18,15 @@ const request = async (url: string, options: RequestInit, isJson = true) => {
     const data = await response.json();
     if (data.code === 401) {
       LoginModal.show();
+      setUserInfo({
+        userId: '',
+        level: 0,
+        id: '',
+        email: '',
+        avatar: '',
+        position: '',
+        user_name: '',
+      });
     }  
     // 只提示一次500错误
     if (data.code === 500 && !sessionStorage.getItem('requestError500')) {

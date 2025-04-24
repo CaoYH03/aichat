@@ -306,12 +306,17 @@ const LoginModal: LoginModalType = ({ visible, onClose }) => {
   );
 };
 LoginModal.show = () => {
+  const loginModal = sessionStorage.getItem('loginModal');
+  if (loginModal) {
+    return () => {};
+  }
   const LoginContainer = document.createElement("div");
   LoginContainer.className = "login-container";
   document.body.appendChild(LoginContainer);
-  
+  sessionStorage.setItem('loginModal', 'true');
   const root = ReactDom.createRoot(LoginContainer);
   const handleClose = () => {
+    sessionStorage.removeItem('loginModal');
     // 先卸载组件
     root.unmount();
     // 再移除容器
