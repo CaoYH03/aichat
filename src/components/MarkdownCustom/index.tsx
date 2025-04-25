@@ -171,7 +171,20 @@ const MarkdownCustom = forwardRef<MarkdownCustomRef, MarkdownCustomProps>(
             components={{
               a: MarkdownWithLink as any,
               img: ({ src, alt }) => {
-                return <div className="eoai-markdown-img">
+                return <div className="eoai-markdown-img" 
+                style={{
+                  width: '56px',
+                  height: '56px',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  borderRadius: '4px',
+                  overflow: 'hidden',
+                  backgroundColor: '#fff',
+                  border: '.5px solid #eee',
+                  margin: '10px',
+                }}
+                >
                   <img 
                     src={src || 'https://api.ditings.iyiou.com/assets/admin/qi.png'} 
                     alt={alt} 
