@@ -60,7 +60,16 @@ const LoginModal: LoginModalType = ({ visible, onClose }) => {
       message.error('请输入手机号');
       return;
     }
+    if(!phone.replace(/^(\+86)?/, '').match(/^1[3-9]\d{9}$/)) {
+      message.error('请输入正确的11位手机号');
+      return;
+    }
     setIsCaptha(true);
+    if(isCaptha) {
+      document.getElementById('captcha')?.remove();
+      setIsCaptha(false);
+      return;
+    }
     const res = await getGeetest();
     initGeetest(
       {
@@ -118,6 +127,14 @@ const LoginModal: LoginModalType = ({ visible, onClose }) => {
   const handleLogin = async () => {
     if (!phone || !code) {
       message.error('请输入手机号和验证码');
+      return;
+    }
+    if(!phone.replace(/^(\+86)?/, '').match(/^1[3-9]\d{9}$/)) {
+      message.error('请输入正确的11位手机号');
+      return;
+    }
+    if(!code.match(/^\d{6}$/)) {
+      message.error('请输入正确的6位验证码');
       return;
     }
     setLoading(true);
@@ -205,6 +222,7 @@ const LoginModal: LoginModalType = ({ visible, onClose }) => {
             <Input
               size="large"
               placeholder="请输入验证码"
+              maxLength={6}
               value={code}
               onChange={(e: ChangeEvent<HTMLInputElement>) =>
                 setCode(e.target.value)
@@ -223,7 +241,7 @@ const LoginModal: LoginModalType = ({ visible, onClose }) => {
           )}
           <Button
             type="primary"
-            className="w-full bg-indigo-500! hover:bg-indigo-500! rounded-full mt-8"
+            className="w-full h-[40px]! bg-[#007AFF]! hover:bg-[#007AFF]! rounded-full mt-8"
             loading={loading}
             onClick={handleLogin}>
             登录
@@ -261,7 +279,7 @@ const LoginModal: LoginModalType = ({ visible, onClose }) => {
           </Space.Compact>
           <Button
             type="primary"
-            className="w-full h-[40px]! bg-indigo-500! hover:bg-indigo-500! rounded-full mt-8"
+            className="w-full h-[40px]! bg-[#007AFF]! hover:bg-[#007AFF]! rounded-full mt-8"
             loading={loading}
             onClick={handlePasswordLogin}>
             登录

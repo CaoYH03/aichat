@@ -10,7 +10,7 @@ import {
 import { getChatList, renameSession, deleteSession } from '@client/api';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import eventBus from '@client/hooks/eventMitt';
-import { addSearchParams, compareDate } from '@client/utils';
+import { compareDate } from '@client/utils';
 import { GetProp, message, Button, Input, Divider, Space } from 'antd';
 import InfiniteScroll from 'react-infinite-scroll-component';
 import { useSearchParams } from 'react-router-dom';

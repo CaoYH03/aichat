@@ -2,7 +2,7 @@ import BubbleList from '@client/components/Bubble';
 import Prompt from '@client/components/Prompt';
 import ScrollToBottom from '@client/components/ScrollToBottom';
 import { Sender } from '@ant-design/x';
-import { Button, notification, Spin } from 'antd';
+import { Button, message, notification, Spin } from 'antd';
 import { SearchOutlined, LoadingOutlined } from '@ant-design/icons';
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useXAgent, useXChat, XStream } from '@ant-design/x';
@@ -177,7 +177,7 @@ const Chat = () => {
           ...prev,
           {
             id: `msg_error_${Math.random()}`,
-            message: '登录过期，请重新登录',
+            message: '请先登录，再进行会话',
             status: 'success' as MessageStatus,
           }
         ]);
@@ -230,6 +230,10 @@ const Chat = () => {
 
   // 取消请求
   const handleCancel = useCallback(() => {
+    if(!currentTaskIdRef.current) {
+      message.warning('只能在输出后取消');
+      return;
+    }
     setIsTypingComplete(true);
     eventBus.emit('onIsTypingComplete', true);
     setIsRequesting(false);

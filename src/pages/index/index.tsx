@@ -24,6 +24,7 @@ const Index = () => {
     }
   }, [setUserInfo, setRecommendBrief]);
   useEffect(() => {
+    sessionStorage.removeItem('loginModal');
     initUserInfo();
   }, [initUserInfo]);
   return (
