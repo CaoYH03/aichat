@@ -77,7 +77,7 @@ import {
           />,
           '热门问题',
         ),
-        description: '您想了解什么？',
+        description: '想查找哪些数据？',
         children: [
           {
             key: '1-1',
@@ -107,7 +107,7 @@ import {
           />,
           '精选动态',
         ),
-        description: '想知道最近的动态吗？',
+        description: '试试自动生成简报？',
         children: recommendBrief.map((item) => ({
           key: item.shareId,
           description: item.title,
@@ -124,7 +124,7 @@ import {
           />,
           '快捷工具',
         ),
-        description: '什么是简报？',
+        description: '还有哪些好用的功能？',
         children: [
           {
             key: '3-1',
