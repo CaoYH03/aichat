@@ -48,7 +48,7 @@ export const getChatList = async (params: {
 };
 // 获取会话详情
 export const checkSession = async (conversation_id: string, user: string) => {
-  return request(`/spa/llm/messages?user=${user}&conversation_id=${conversation_id}`, {
+  return request(`/spa/llm/messages?user=${user}&conversation_id=${conversation_id}&limit=100`, {
     method: 'GET',
     headers: {
         'Content-Type': 'application/json',
