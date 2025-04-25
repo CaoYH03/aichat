@@ -2,8 +2,8 @@ import BubbleList from '@client/components/Bubble';
 import Prompt from '@client/components/Prompt';
 import ScrollToBottom from '@client/components/ScrollToBottom';
 import { Sender } from '@ant-design/x';
-import { Button, message, notification, Spin } from 'antd';
-import { SearchOutlined, LoadingOutlined } from '@ant-design/icons';
+import { Button, notification, Spin } from 'antd';
+import { SearchOutlined, LoadingOutlined, SendOutlined } from '@ant-design/icons';
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useXAgent, useXChat, XStream } from '@ant-design/x';
 import { motion } from 'framer-motion';
@@ -454,17 +454,24 @@ const Chat = () => {
               onClick={handleGlobalSearch} 
               icon={<SearchOutlined />}
             >
-              精确搜索
+              搜索数据
             </Button>
             <Sender
               className="w-full"
               loading={isRequesting}
               value={content}
-              placeholder="随便问点什么"
+              placeholder="请输入您想查询的信息"
               onChange={handleChange}
               onCancel={handleCancel}
               onSubmit={handleSubmit}
               disabled={!isLogin}
+              actions={(_, info)=>{
+                const { LoadingButton, SendButton } = info.components;
+                if(isRequesting) {
+                  return <LoadingButton />
+                }
+                return <SendButton icon={<SendOutlined style={{ position: 'relative', left: '1px', top: '-1px', color: '#fff', transform: 'rotate(-35deg)' }} />} />
+              }}
             />
           </motion.div>
         </div>

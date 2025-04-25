@@ -27,8 +27,8 @@ import {
   );
   const promptTitle = (
     <div style={{ display: 'flex', alignItems: 'center' }}>
-      <span style={{ fontSize: 16, fontWeight: 600, color: '#000' }}>亿欧Ai，您的</span>
-      <span style={{ fontSize: 16, fontWeight: 600, color: '#000' }}>行业助手</span>
+      <span style={{ fontSize: 16, fontWeight: 600, color: '#000' }}>小欧AI，</span>
+      <span style={{ fontSize: 16, fontWeight: 600, color: '#000' }}>亿欧产业智能体</span>
     </div>
   );
   // const connectModal = (open: boolean, setOpen: (open: boolean) => void) => {
@@ -89,7 +89,7 @@ import {
           },
           {
             key: '1-3',
-            description: `2024年融资企业有多少？`,
+            description: `人员规模大于100的上海汽车出行企业`,
           },
           {
             key: '1-4',

@@ -342,9 +342,9 @@ const SessionList = ({ isFold }: { isFold: boolean }) => {
           </InfiniteScroll>
           ) : (
             <div className='h-full p-[16px_16px_0_16px] flex flex-col items-center justify-center gap-[10px]'>
-              <h2 className='text-[18px] font-bold text-[#333]'>   登录领权益
+              <h2 className='text-[18px] font-bold text-[#333]'>   登录开启体验
               </h2>
-              <h3 className='text-[14px] text-[#666] text-center'> 领音视频时长、全文翻译数、存储空间等多项权益 </h3>
+              <h3 className='text-[14px] text-[#666] text-center'> 行业洞察、企业扫描、一键生成简报等多个场景</h3>
               <Button type='primary' onClick={() => LoginModal.show()}>立即登录</Button>
             </div>
           )
