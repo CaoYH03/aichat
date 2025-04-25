@@ -348,8 +348,7 @@ const Chat = () => {
 
   // 聊天内容渲染
   const chatContent = useMemo(() => {
-    // if (isMessageLoading) {
-    if (true) {
+    if (isMessageLoading) {
       return <Spin indicator={<LoadingOutlined spin />} size="large" style={{ top: '20%' }} />;
     }
     
