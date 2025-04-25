@@ -88,6 +88,10 @@ const Chat = () => {
       const currentUserInfo = userStoreSelector().userInfo;
       const controller = new AbortController();
       const signal = controller.signal;
+                  // 保存取消函数
+                  abortRef.current = () => {
+                    controller.abort();
+                  };
       const response = await chatMessage({
         inputs: {},
         query: message,
@@ -95,7 +99,11 @@ const Chat = () => {
         conversation_id: currentConversationIdRef.current,
         user: currentUserInfo.userId,
         files: [],
-      },signal);
+      },signal).catch(error => {
+        if (error.name === 'AbortError') {
+          handleApiError(408);
+        }
+      });
       
       // 处理错误响应
       if (handleApiError(response.status)) return;
@@ -106,10 +114,6 @@ const Chat = () => {
       const stream = XStream({ readableStream: response.body });
       const reader = stream.getReader();
       
-      // 保存取消函数
-      abortRef.current = () => {
-        controller.abort();
-      };
       
       try {
         while (true) {
@@ -185,6 +189,19 @@ const Chat = () => {
         LoginModal.show();
         return true;
       } 
+      if (status === 408) {
+        // 处理408超时错误
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `msg_error_${Math.random()}`,
+            message: '已经取消请求',
+            status: 'success' as MessageStatus,
+          }
+        ]);
+        
+        return true;
+      }
       
       if (status !== 200) {
         // 处理其他错误
@@ -230,17 +247,13 @@ const Chat = () => {
 
   // 取消请求
   const handleCancel = useCallback(() => {
-    if(!currentTaskIdRef.current) {
-      message.warning('只能在输出后取消');
-      return;
-    }
+    abortRef.current();
     setIsTypingComplete(true);
     eventBus.emit('onIsTypingComplete', true);
     setIsRequesting(false);
     if(currentTaskIdRef.current) {
       stopChat(currentTaskIdRef.current, { user: userInfo.userId });
     }
-    abortRef.current();
   }, [userInfo.userId]);
 
   // 提交消息
@@ -264,6 +277,8 @@ const Chat = () => {
     setMessages([]);
     // setIsTyping(true);
     currentConversationIdRef.current = '';
+    currentMessageIdRef.current = '';
+    currentTaskIdRef.current = '';
     navigate('/');
   }, [setMessages, navigate]);
 

@@ -19,7 +19,7 @@ export const chatMessage = async (data: unknown, signal?: AbortSignal) => {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(data),
-    signal
+    signal: signal,
   }, false);
 };
 // 终止聊天
