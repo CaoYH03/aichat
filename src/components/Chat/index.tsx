@@ -348,7 +348,8 @@ const Chat = () => {
 
   // 聊天内容渲染
   const chatContent = useMemo(() => {
-    if (isMessageLoading) {
+    // if (isMessageLoading) {
+    if (true) {
       return <Spin indicator={<LoadingOutlined spin />} size="large" style={{ top: '20%' }} />;
     }
     
@@ -437,7 +438,7 @@ const Chat = () => {
           visible={messages.length > 0}
         />
 
-        <div className="w-full flex justify-center mb-[10px]">
+        <div className="w-full flex flex-col items-center justify-center">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -447,6 +448,7 @@ const Chat = () => {
               width: 'calc(100% - 78px)',
               position: 'relative',
               left: '22px',
+              marginBottom: '10px',
             }}
           >
             <Button 
@@ -474,8 +476,8 @@ const Chat = () => {
               }}
             />
           </motion.div>
+          <span className='text-[10px] text-[#8f91a8] text-center'>服务生成的所有内容均由人工智能模型生成，其生成内容的准确性和完整性无法保证，不代表我们的态度或观点</span>
         </div>
-        <span className='text-[10px] text-[#8f91a8] text-center'>服务生成的所有内容均由人工智能模型生成，其生成内容的准确性和完整性无法保证，不代表我们的态度或观点</span>
       </div>
     </div>
   );
